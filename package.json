@@ -1,0 +1,58 @@
+{
+  "name": "@shipeasy/openapi",
+  "version": "1.0.0",
+  "description": "Shipeasy admin OpenAPI spec + typed client. Single source of truth for endpoint paths, request/response shapes, and the resource registry consumed by @shipeasy/cli and @shipeasy/mcp.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shipeasy-ai/openapi.git"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./resources/*": {
+      "types": "./dist/resources/*.d.ts",
+      "default": "./dist/resources/*.js"
+    },
+    "./transport": {
+      "types": "./dist/transport.d.ts",
+      "default": "./dist/transport.js"
+    },
+    "./pagination": {
+      "types": "./dist/pagination.d.ts",
+      "default": "./dist/pagination.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "openapi.json"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "emit-openapi": "tsx scripts/emit-spec.ts"
+  },
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@shipeasy/core": "workspace:*",
+    "openapi-types": "^12.1.3",
+    "tsup": "^8.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.4",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
