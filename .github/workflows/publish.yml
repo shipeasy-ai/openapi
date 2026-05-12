@@ -1,0 +1,69 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Lock to one publish at a time so a rapid double-tag can't race the npm
+# version bump out of order.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # for npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      # Source uses `workspace:^X.Y.Z` for cross-package refs so the monorepo
+      # pnpm workspace links them locally. Outside the monorepo, those refs
+      # don't resolve — rewrite to plain semver before install.
+      - name: Inline workspace: deps to registry semver
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            for (const k of ['dependencies','devDependencies','peerDependencies']) {
+              if (!p[k]) continue;
+              for (const dep of Object.keys(p[k])) {
+                const v = p[k][dep];
+                p[k][dep] = v
+                  .replace(/^workspace:\\^/, '^')
+                  .replace(/^workspace:~/, '~')
+                  .replace(/^workspace:\\*$/, 'latest')
+                  .replace(/^workspace:/, '');
+              }
+            }
+            fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          "
+
+      - run: pnpm install --no-frozen-lockfile
+
+      - run: pnpm run build
+
+      - name: Publish to npm
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$PKG_VERSION" version 2>/dev/null | grep -q "$PKG_VERSION"; then
+            echo "Already published: $NAME@$PKG_VERSION"
+          else
+            npm publish --access public --provenance
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
