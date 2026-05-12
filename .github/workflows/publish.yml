@@ -28,12 +28,12 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          cache: pnpm
+
 
       # Source uses `workspace:^X.Y.Z` for cross-package refs so the monorepo
       # pnpm workspace links them locally. Outside the monorepo, those refs
       # don't resolve — rewrite to plain semver before install.
-      - name: Inline workspace: deps to registry semver
+      - name: "Inline workspace: deps to registry semver"
         run: |
           node -e "
             const fs = require('fs');
