@@ -1,14 +1,21 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "es2024",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowJs": true,
     "types": ["node"],
-    "rootDir": "src",
-    "outDir": "dist",
     "declaration": true,
     "noEmit": false,
     "incremental": false,
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
+    "rootDir": "src",
+    "outDir": "dist"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
