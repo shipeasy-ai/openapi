@@ -4,6 +4,7 @@ import { experimentsClient, experimentsResource } from "./experiments.js";
 import { configsClient, configsResource } from "./configs.js";
 import { universesClient, universesResource } from "./universes.js";
 import { killswitchesClient, killswitchesResource } from "./killswitches.js";
+import { alertRulesClient } from "./alert-rules.js";
 
 /**
  * Aggregate admin client. Each resource lives in its own file under
@@ -20,6 +21,7 @@ export function createAdminClient(transport: Transport) {
     configs: configsClient(transport),
     universes: universesClient(transport),
     killswitches: killswitchesClient(transport),
+    alertRules: alertRulesClient(transport),
   };
 }
 
@@ -49,4 +51,5 @@ export {
   universesResource,
   killswitchesClient,
   killswitchesResource,
+  alertRulesClient,
 };

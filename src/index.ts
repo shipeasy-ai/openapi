@@ -22,6 +22,7 @@ export {
   universesResource,
   killswitchesClient,
   killswitchesResource,
+  alertRulesClient,
   RESOURCE_REGISTRY,
 } from "./resources/index.js";
 export type { AdminClient } from "./resources/index.js";
@@ -59,3 +60,9 @@ export type {
   UniverseCreateInput,
   UniverseUpdateInput,
 } from "./resources/universes.js";
+export type {
+  AlertRule,
+  AlertRulesClient,
+  AlertRuleCreateInput,
+  AlertRuleUpdateInput,
+} from "./resources/alert-rules.js";
