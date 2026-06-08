@@ -9,8 +9,8 @@ import {
   gateToggleResponseSchema,
   type GateCreateInput,
   type GateUpdateInput,
-} from "@shipeasy/core/schemas/gates";
-import type { Page, PageQuery } from "@shipeasy/core/pagination";
+} from "../schemas/gates.js";
+import type { Page, PageQuery } from "../schemas/pagination.js";
 import type { Transport } from "../transport.js";
 import { ApiError } from "../transport.js";
 

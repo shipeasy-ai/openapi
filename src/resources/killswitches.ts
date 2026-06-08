@@ -10,8 +10,8 @@ import {
   killswitchDeleteResponseSchema,
   killswitchSwitchSetResponseSchema,
   killswitchSwitchUnsetResponseSchema,
-} from "@shipeasy/core/schemas/killswitches";
-import type { Page, PageQuery } from "@shipeasy/core/pagination";
+} from "../schemas/killswitches.js";
+import type { Page, PageQuery } from "../schemas/pagination.js";
 import type { Transport } from "../transport.js";
 import { ApiError } from "../transport.js";
 

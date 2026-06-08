@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   alertRuleCreateSchema,
   alertRuleUpdateSchema,
-} from "@shipeasy/core/schemas/alert-rules";
+} from "../schemas/alert-rules.js";
 import type { Transport } from "../transport.js";
 import { ApiError } from "../transport.js";
 

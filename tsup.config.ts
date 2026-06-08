@@ -1,7 +1,17 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/transport.ts", "src/resources/*.ts"],
+  // Schemas live here too (src/schemas/*) and are exposed at the
+  // `@shipeasy/openapi/schemas/*` subpath — zod-only, no transport/client code,
+  // so the server (@shipeasy/core) can re-export them without pulling in the
+  // HTTP client. The package has no `@shipeasy/*` deps, so nothing to inline.
+  entry: [
+    "src/index.ts",
+    "src/transport.ts",
+    "src/resources/*.ts",
+    "src/schemas/*.ts",
+    "!src/schemas/*.test.ts",
+  ],
   format: ["esm"],
   dts: true,
   clean: true,
@@ -9,9 +19,4 @@ export default defineConfig({
   target: "es2022",
   sourcemap: false,
   splitting: false,
-  // @shipeasy/core ships TS source only (no build step) — inline it so the
-  // admin-api dist is self-contained and Node's runtime ESM resolver never
-  // hits a .ts file when this package is consumed by built packages
-  // (@shipeasy/mcp, @shipeasy/cli).
-  noExternal: ["@shipeasy/core"],
 });

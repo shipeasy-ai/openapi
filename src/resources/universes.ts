@@ -8,8 +8,8 @@ import {
   universeDeleteResponseSchema,
   type UniverseCreateInput,
   type UniverseUpdateInput,
-} from "@shipeasy/core/schemas/universes";
-import type { Page, PageQuery } from "@shipeasy/core/pagination";
+} from "../schemas/universes.js";
+import type { Page, PageQuery } from "../schemas/pagination.js";
 import type { Transport } from "../transport.js";
 import { ApiError } from "../transport.js";
 

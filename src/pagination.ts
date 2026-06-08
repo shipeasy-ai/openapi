@@ -1,6 +1,6 @@
 /**
- * Re-export of the cursor codec + types from `@shipeasy/core/pagination` so
- * SDK consumers don't have to depend on `@shipeasy/core` directly.
+ * Re-export of the cursor codec + types from `./schemas/pagination.js` so
+ * SDK consumers can import these straight from `@shipeasy/openapi`.
  */
 export {
   pageQuerySchema,
@@ -8,5 +8,5 @@ export {
   decodeCursor,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
-} from "@shipeasy/core/pagination";
-export type { Page, PageQuery, CursorParts } from "@shipeasy/core/pagination";
+} from "./schemas/pagination.js";
+export type { Page, PageQuery, CursorParts } from "./schemas/pagination.js";
