@@ -29,6 +29,12 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      # npm Trusted Publishing requires npm >= 11.5.1. Node 22 LTS ships with
+      # npm 10.x by default, so upgrade explicitly. Without this the publish
+      # step fails with ENEEDAUTH after we strip the placeholder _authToken —
+      # npm 10 won't reach for OIDC even with id-token:write.
+      - name: Upgrade npm to a Trusted-Publishing-aware release
+        run: npm install -g npm@latest && npm --version
 
       # Source uses `workspace:^X.Y.Z` for cross-package refs so the monorepo
       # pnpm workspace links them locally. Outside the monorepo, those refs
@@ -56,7 +62,22 @@ jobs:
 
       - run: pnpm run build
 
-      - name: Publish to npm
+      # Trusted Publishing: actions/setup-node always writes a placeholder
+      # `//registry.npmjs.org/:_authToken=…` into the per-job npmrc even when
+      # NODE_AUTH_TOKEN is unset. npm then sends that placeholder and never
+      # reaches for the OIDC path. Strip the line so npm mints a short-lived
+      # OIDC token from this workflow's `id-token: write` permission instead.
+      - name: Strip _authToken from npmrc (force OIDC path)
+        run: |
+          set -e
+          for f in "$NPM_CONFIG_USERCONFIG" "$HOME/.npmrc" "$GITHUB_WORKSPACE/.npmrc"; do
+            [ -n "$f" ] && [ -f "$f" ] || continue
+            sed -i.bak '/^\/\/registry\.npmjs\.org\/:_authToken=/d' "$f"
+            echo "── stripped $f ──"
+            cat "$f"
+          done
+
+      - name: Publish to npm (Trusted Publishing — OIDC)
         run: |
           NAME=$(node -p "require('./package.json').name")
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -65,5 +86,3 @@ jobs:
           else
             npm publish --access public --provenance
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
