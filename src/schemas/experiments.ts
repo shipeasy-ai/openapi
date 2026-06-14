@@ -231,7 +231,7 @@ export const experimentStatusUpdateSchema = z
     status: z
       .enum(["draft", "running", "stopped", "archived"])
       .describe(
-        "Target status. Allowed transitions: `draft → running`, `running → stopped`, `stopped → archived`, `draft → archived`. Restarting an archived experiment is not allowed.",
+        "Target status. Allowed transitions: `draft → running`, `running → stopped`, `stopped → archived`, `draft → archived`, and `archived → draft` (restore — only if the experiment never started). Restarting an archived experiment directly is not allowed; restore it to draft first, then start.",
       ),
   })
   .describe("Body for `POST /api/admin/experiments/{id}/status`.");

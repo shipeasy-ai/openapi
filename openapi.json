@@ -29,7 +29,7 @@
     },
     {
       "name": "Experiments",
-      "description": "A/B/n experiments: randomised group assignment plus the analysis pipeline (t-test, sequential testing, SRM detection) on top of a universe.\n\n**Identity.** Stable `name` (a-z, 0-9, `_`/`-`, max 64 chars). Immutable after create.\n\n**Lifecycle.** `draft → running → stopped → archived`. Transition via `POST /{id}/status`. Restarting an archived experiment is not allowed.\n\n**Allocation.** `allocation_pct` (basis points, 0–10000) is the share of the targeted audience enrolled; `groups[].weight` (must sum to 10000) splits the enrolled audience. `targeting_gate` narrows the eligible audience before allocation.\n\n**Immutable while running.** `allocation_pct`, `groups`, `salt`, `universe`, `params` cannot be edited on a running experiment — stop it first.\n\n**Metrics.** Attach via `POST /{id}/metrics`. Each metric has a role: `goal` drives the decision, `guardrail` blocks ship on regression, `secondary` is informational.\n\n**Analysis.** Daily cron writes results to D1. Read via `GET /{id}/results` (latest per metric/group/day) or `GET /{id}/timeseries` (full history). `POST /{id}/reanalyze` requeues the analysis pass."
+      "description": "A/B/n experiments: randomised group assignment plus the analysis pipeline (t-test, sequential testing, SRM detection) on top of a universe.\n\n**Identity.** Stable `name` (a-z, 0-9, `_`/`-`, max 64 chars). Immutable after create.\n\n**Lifecycle.** `draft → running → stopped → archived`. Transition via `POST /{id}/status`. An archived experiment that never started can be restored with `archived → draft`; restarting an archived experiment directly is not allowed.\n\n**Allocation.** `allocation_pct` (basis points, 0–10000) is the share of the targeted audience enrolled; `groups[].weight` (must sum to 10000) splits the enrolled audience. `targeting_gate` narrows the eligible audience before allocation.\n\n**Immutable while running.** `allocation_pct`, `groups`, `salt`, `universe`, `params` cannot be edited on a running experiment — stop it first.\n\n**Metrics.** Attach via `POST /{id}/metrics`. Each metric has a role: `goal` drives the decision, `guardrail` blocks ship on regression, `secondary` is informational.\n\n**Analysis.** Daily cron writes results to D1. Read via `GET /{id}/results` (latest per metric/group/day) or `GET /{id}/timeseries` (full history). `POST /{id}/reanalyze` requeues the analysis pass."
     },
     {
       "name": "Configs",
@@ -50,7 +50,9 @@
         "operationId": "listGates",
         "summary": "List feature gates",
         "description": "Returns a single page of gates ordered by `updated_at desc, id desc`. Use the `cursor` query parameter to paginate.\n\n**Use case:** Snapshot every gate in the project — for example to render an admin overview or to drive a CI check that asserts no gate is left at 100% in staging.",
-        "tags": ["Gates"],
+        "tags": [
+          "Gates"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -81,7 +83,11 @@
                         {
                           "attr": "country",
                           "op": "in",
-                          "value": ["US", "CA", "GB"]
+                          "value": [
+                            "US",
+                            "CA",
+                            "GB"
+                          ]
                         },
                         {
                           "attr": "plan",
@@ -128,7 +134,9 @@
         "operationId": "createGate",
         "summary": "Create a feature gate",
         "description": "Creates a new gate. Default `enabled: true` at the supplied `rollout_pct` (`0` = fully dark).\n\nOnly `name` is required. Request fields use snake_case (`owner_email`); the GET response returns camelCase (`ownerEmail`, `groupName`).\n\nReturns `409` if `name` already exists in the project (case-sensitive).\n\n**Use cases**\n\n- **Dark create + ramp later** — `{ \"name\": \"checkout_v2\" }` at 0% rollout. Ramp via PATCH after deploy validation.\n- **Targeted rollout** — supply `rules` to gate the caller (e.g. only `plan = pro` users) plus a `rollout_pct` to bucket within that audience.\n- **Gatekeeper stack** — supply `stack` instead of `rules`/`rollout_pct` for `internal ∪ beta ∪ public` fall-through. Stack entries evaluated top-to-bottom; first match wins.\n- **Dashboard metadata** — populate `title`, `description`, `folder`, `group`, `owner_email` so the admin UI is self-documenting from day one.\n- **Disabled on create** — pre-provision with `enabled: false` for a future launch; flip on with `POST /{id}/enable` at go-live.",
-        "tags": ["Gates"],
+        "tags": [
+          "Gates"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -159,7 +167,11 @@
                       {
                         "attr": "country",
                         "op": "in",
-                        "value": ["US", "CA", "GB"]
+                        "value": [
+                          "US",
+                          "CA",
+                          "GB"
+                        ]
                       },
                       {
                         "attr": "plan",
@@ -273,7 +285,9 @@
         "operationId": "updateGate",
         "summary": "Update a feature gate",
         "description": "Partial update — only supplied fields change. Array fields (`rules`, `stack`) **replace** wholesale; there is no merge or append.\n\n`name` and the gate id are immutable. The response carries only `{ id }` — re-fetch via `GET /api/admin/gates` for the new row.\n\n**Use cases**\n\n- **Ramp rollout** — `{ \"rollout_pct\": 5000 }` for 50%. Basis points (0–10000); `100` = 1%.\n- **Kill switch** — `{ \"enabled\": false }`. Forces evaluation to `false` for every caller regardless of rules/rollout. Re-enable with `POST /{id}/enable` or `{ \"enabled\": true }`.\n- **Modify a rule's `in` set** — send the full new `rules` array. To add `'GB'` to `['US','CA']`: `{ \"rules\": [{ \"attr\": \"country\", \"op\": \"in\", \"value\": [\"US\",\"CA\",\"GB\"] }] }`. No per-rule patch endpoint.\n- **Add targeting from scratch** — `{ \"rules\": [{ \"attr\": \"email\", \"op\": \"regex\", \"value\": \"@acme\\\\.com$\" }] }`.\n- **Switch to gatekeeper stack** — send a non-null `stack`. To revert to flat eval, send `{ \"stack\": null }`.\n- **Update metadata** — any subset of `title`, `description`, `folder`, `group`, `owner_email`.",
-        "tags": ["Gates"],
+        "tags": [
+          "Gates"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -318,7 +332,12 @@
                       {
                         "attr": "country",
                         "op": "in",
-                        "value": ["US", "CA", "GB", "AU"]
+                        "value": [
+                          "US",
+                          "CA",
+                          "GB",
+                          "AU"
+                        ]
                       },
                       {
                         "attr": "plan",
@@ -408,7 +427,9 @@
         "operationId": "deleteGate",
         "summary": "Delete a feature gate",
         "description": "Soft-deletes the gate. Returns 409 if the gate is still referenced by a running experiment as a targeting gate — stop the experiment first.\n\n**Use case:** Tear down a gate after a feature has fully shipped and the rollout flag is no longer needed.",
-        "tags": ["Gates"],
+        "tags": [
+          "Gates"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -463,7 +484,9 @@
         "operationId": "enableGate",
         "summary": "Enable a gate",
         "description": "Sets `enabled: true`. The current `rollout_pct` is preserved.\n\n**Use case:** Re-enable a previously disabled gate without re-issuing a full update.",
-        "tags": ["Gates"],
+        "tags": [
+          "Gates"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -519,7 +542,9 @@
         "operationId": "disableGate",
         "summary": "Disable a gate",
         "description": "Sets `enabled: false` so the gate evaluates to `false` for every caller, regardless of `rollout_pct` or `rules`. Use as a quick kill switch.\n\n**Use case:** Flip a gate off in production without redeploying — the canonical kill-switch flow.",
-        "tags": ["Gates"],
+        "tags": [
+          "Gates"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -575,7 +600,9 @@
         "operationId": "listExperiments",
         "summary": "List experiments",
         "description": "Returns a single page of non-archived experiments ordered by `updated_at desc, id desc`. Use the `cursor` query parameter to paginate.\n\n**Use case:** Snapshot every active experiment in the project — e.g. render an overview dashboard or drive a CI check that no experiment has been running past its `min_runtime_days`.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -664,7 +691,9 @@
         "operationId": "createExperiment",
         "summary": "Create an experiment",
         "description": "Creates a new experiment in `draft` status. `name`, `universe`, and `groups` are required; everything else has sensible defaults.\n\nReturns `409` if `name` already exists, `422` if the named universe doesn't exist, `403` if a plan-gated option is set (`sequential_testing`, custom `significance_threshold`) on a plan that doesn't include it.\n\n**Use cases**\n\n- **Minimal 50/50** — `name` + `universe` + two equal-weight groups.\n- **Targeted rollout** — supply `targeting_gate` to restrict the eligible audience and `allocation_pct` to enrol a slice of it.\n- **Multivariant** — three or more groups with weights summing to 10000.\n- **Sequential testing** — `sequential_testing: true` for Premium plans.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -813,7 +842,9 @@
         "operationId": "getExperiment",
         "summary": "Get one experiment",
         "description": "Returns the full experiment row including groups, params, allocation, and lifecycle timestamps.\n\n**Use case:** Fetch one experiment to render the detail page or to inspect its current allocation and group weights.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -900,7 +931,9 @@
         "operationId": "updateExperiment",
         "summary": "Update an experiment",
         "description": "Partial update. `allocation_pct`, `groups`, `salt`, `universe`, `params` are **immutable while running** — returns `409` if you try. Stop the experiment first.\n\nEditing `groups` while in `draft` is fine; weights must still sum to 10000.\n\n**Use cases**\n\n- **Update metadata** — `description`, `tag`, `targeting_gate` editable any time.\n- **Ramp before launch** — set `allocation_pct` while still in `draft`.\n- **Tighten significance** — `significance_threshold` (Pro+).\n- **Rewire groups** — replace `groups` wholesale while in `draft`; immutable once running.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1003,7 +1036,9 @@
         "operationId": "deleteExperiment",
         "summary": "Delete an experiment",
         "description": "Archives the experiment (soft-delete via status transition). Returns `409` if the experiment is still `running` — stop it first.\n\n**Use case:** Tear down an experiment after the analysis is signed off.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1057,8 +1092,10 @@
       "post": {
         "operationId": "setExperimentStatus",
         "summary": "Transition experiment status",
-        "description": "Drives the experiment lifecycle. Allowed transitions:\n\n- `draft → running` — starts allocation. Bumps the `startedAt` timestamp.\n- `running → stopped` — halts allocation. Existing exposures stay in the dataset.\n- `stopped → archived` — soft-delete.\n- `draft → archived` — discard an unstarted experiment.\n\nRestarting an `archived` experiment is not allowed; clone instead. Returns `409` on illegal transitions and `429` if the plan's `experiments_running` limit is exceeded on `→ running`.\n\n**Use cases**\n\n- **Start** — `{ \"status\": \"running\" }` after wiring up the SDK and verifying targeting on staging.\n- **Stop** — `{ \"status\": \"stopped\" }` once the experiment hits its `min_runtime_days` and conclusive results land.\n- **Archive** — `{ \"status\": \"archived\" }` to soft-delete after sign-off.",
-        "tags": ["Experiments"],
+        "description": "Drives the experiment lifecycle. Allowed transitions:\n\n- `draft → running` — starts allocation. Bumps the `startedAt` timestamp.\n- `running → stopped` — halts allocation. Existing exposures stay in the dataset.\n- `stopped → archived` — soft-delete.\n- `draft → archived` — discard an unstarted experiment.\n- `archived → draft` — restore a soft-deleted experiment so it can be re-completed and started. Allowed only if it never started; one that already ran must be cloned instead.\n\nRestarting an `archived` experiment directly is not allowed — restore it to `draft` first. Returns `409` on illegal transitions and `429` if the plan's `experiments_running` limit is exceeded on `→ running`.\n\n**Use cases**\n\n- **Start** — `{ \"status\": \"running\" }` after wiring up the SDK and verifying targeting on staging.\n- **Stop** — `{ \"status\": \"stopped\" }` once the experiment hits its `min_runtime_days` and conclusive results land.\n- **Archive** — `{ \"status\": \"archived\" }` to soft-delete after sign-off.",
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1100,6 +1137,13 @@
                   "description": "Soft-deletes the experiment. List endpoints exclude archived rows by default.",
                   "value": {
                     "status": "archived"
+                  }
+                },
+                "restore": {
+                  "summary": "Restore — archived → draft",
+                  "description": "Un-deletes a soft-deleted experiment so it can be re-completed and started. Allowed only if it never ran.",
+                  "value": {
+                    "status": "draft"
                   }
                 }
               }
@@ -1147,7 +1191,9 @@
         "operationId": "setExperimentMetrics",
         "summary": "Attach metrics",
         "description": "Replaces the experiment's metric attachments wholesale. Each entry pairs an existing `metric_id` with a `role` (`goal` / `guardrail` / `secondary`).\n\nReturns `422` if any `metric_id` doesn't exist in the project. Pass `{ metrics: [] }` to detach everything.\n\n**Use cases**\n\n- **Standard setup** — one `goal`, one or two `guardrail`, optional `secondary` metrics for diagnostics.\n- **Detach all** — send `{ \"metrics\": [] }` before archiving.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1247,7 +1293,9 @@
         "operationId": "getExperimentResults",
         "summary": "Get analysis results",
         "description": "Returns the latest analysis output for the experiment — one row per metric/group/day, including sample size, mean, % delta vs. control, p-value, and a sample-ratio mismatch flag.\n\n**Use case:** Render the results table on the experiment detail page or drive an automated decision once a `goal` metric reaches significance.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1328,7 +1376,9 @@
         "operationId": "getExperimentTimeseries",
         "summary": "Get analysis timeseries",
         "description": "Same row shape as `/results`, but returns every daily slice rather than the latest. Filter to a single metric with the `metric` query parameter.\n\n**Use case:** Drive a chart of metric movement over the experiment runtime, or sanity-check the lift is monotonic before deciding.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1418,7 +1468,9 @@
         "operationId": "reanalyzeExperiment",
         "summary": "Re-queue analysis",
         "description": "Requeues the daily analysis pass for this experiment outside the normal cron cadence. Useful after attaching a new metric or correcting an event taxonomy. The job runs asynchronously.\n\n**Use case:** Force-refresh results after wiring up a new metric without waiting for the next nightly cron tick.",
-        "tags": ["Experiments"],
+        "tags": [
+          "Experiments"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1474,7 +1526,9 @@
         "operationId": "listConfigs",
         "summary": "List dynamic configs",
         "description": "Returns a single page of configs ordered by `updated_at desc, id desc`. Each row includes the latest published `version` per env and any active drafts.\n\n**Use case:** Snapshot every config in the project — e.g. CI check that asserts no env is stuck on a stale default or that every config has a published value on prod.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1510,7 +1564,9 @@
                             }
                           }
                         },
-                        "required": ["tiers"]
+                        "required": [
+                          "tiers"
+                        ]
                       },
                       "updatedAt": "2026-05-09T18:22:11.000Z",
                       "envs": {
@@ -1568,7 +1624,9 @@
         "operationId": "createConfig",
         "summary": "Create a dynamic config",
         "description": "Creates a new config with the given `schema`. The initial `value` (or an empty object) is published as version 1 on **every** env.\n\nReturns `409` if `name` already exists in the project, `400` if `value` doesn't validate against `schema`.\n\n**Use cases**\n\n- **Minimal create** — `name` + `schema`. Initial value defaults to `{}`.\n- **Seeded create** — supply a flat `value` to publish the same object on every env.\n- **Per-env seed** — supply a `{ env: value }` map for different per-env starting values.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1594,7 +1652,9 @@
                           "type": "array"
                         }
                       },
-                      "required": ["tiers"]
+                      "required": [
+                        "tiers"
+                      ]
                     }
                   }
                 },
@@ -1611,7 +1671,9 @@
                           "type": "array"
                         }
                       },
-                      "required": ["tiers"]
+                      "required": [
+                        "tiers"
+                      ]
                     },
                     "value": {
                       "tiers": [
@@ -1637,7 +1699,9 @@
                           "type": "array"
                         }
                       },
-                      "required": ["tiers"]
+                      "required": [
+                        "tiers"
+                      ]
                     },
                     "value": {
                       "dev": {
@@ -1721,7 +1785,9 @@
         "operationId": "getConfig",
         "summary": "Get one config",
         "description": "Returns config metadata plus the latest published values per env and any active draft values. Use this to fetch the JSON the editor renders.\n\n**Use case:** Fetch one config's current published values and any in-flight drafts.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1758,7 +1824,9 @@
                         }
                       }
                     },
-                    "required": ["tiers"]
+                    "required": [
+                      "tiers"
+                    ]
                   },
                   "updatedAt": "2026-05-09T18:22:11.000Z",
                   "envs": {
@@ -1860,7 +1928,9 @@
         "operationId": "updateConfig",
         "summary": "Update a dynamic config",
         "description": "Partial update. When `value` is supplied it is **republished on every env** (new version per env). When `schema` is supplied it replaces the current schema; every existing value is re-validated.\n\nFor env-scoped edits, use the draft/publish flow (`PUT /{id}/drafts` then `POST /{id}/publish`) instead.\n\n**Use cases**\n\n- **Republish flat value** — `{ \"value\": {…} }` sets the same value on every env.\n- **Schema migration** — `{ \"schema\": {…} }` replaces the schema; existing values are re-validated.\n- **Env-scoped edits** — use `PUT /{id}/drafts` + `POST /{id}/publish` instead of PATCH.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -1913,7 +1983,9 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["tiers"]
+                      "required": [
+                        "tiers"
+                      ]
                     }
                   }
                 }
@@ -1959,7 +2031,9 @@
         "operationId": "deleteConfig",
         "summary": "Delete a dynamic config",
         "description": "Soft-deletes the config and rebuilds the project's flags KV blob.\n\n**Use case:** Tear down a config after its consumers have stopped reading it.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2014,7 +2088,9 @@
         "operationId": "saveConfigDraft",
         "summary": "Save a draft value",
         "description": "Stages a value for one env without publishing. The draft is validated against the config's current schema and stored alongside the `baseVersion` it was forked from.\n\nSaving over an existing draft overwrites it. Use `POST /{id}/publish` to promote it to a new published version.\n\n**Use case:** Iterate on a config value on dev without affecting prod — preview in staging, then publish.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2102,7 +2178,9 @@
         "operationId": "discardConfigDraft",
         "summary": "Discard a draft",
         "description": "Drops the in-flight draft on one env. Published values are unaffected.\n\n**Use case:** Abandon an in-progress draft after deciding not to ship it.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2176,7 +2254,9 @@
         "operationId": "publishConfigDraft",
         "summary": "Publish a draft",
         "description": "Promotes the staged draft on one env to a new published version. The draft must still validate against the current schema.\n\nReturns `404` if there is no draft for the given env.\n\n**Use case:** Ship a staged change once you've validated it on a lower env.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2259,7 +2339,9 @@
         "operationId": "listConfigActivity",
         "summary": "List config activity",
         "description": "Returns recent audit rows for one config (create, update, draft.save, publish, delete) ordered newest first. Use the `limit` query parameter to cap the result (1–100, default 20).\n\n**Use case:** Render the activity panel in the config editor or drive a slack notification on publish events.",
-        "tags": ["Configs"],
+        "tags": [
+          "Configs"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2336,7 +2418,9 @@
         "operationId": "listKillswitches",
         "summary": "List killswitches",
         "description": "Returns a single page of killswitches ordered by `updated_at desc, id desc`. Each row includes the latest published `value`/`switches`/`version` per env.\n\n**Use case:** Snapshot every killswitch in the project — e.g. to render an incident-response runbook listing every kill and its current trip state.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2414,7 +2498,9 @@
         "operationId": "createKillswitch",
         "summary": "Create a killswitch",
         "description": "Creates a new killswitch with `value` (default `false`) applied to **every** env at version 1.\n\nReturns `409` if `name` already exists in the project.\n\n**Use cases**\n\n- **Untripped create** — `{ \"name\": \"payments.checkout\" }`. Provision the kill ahead of an incident.\n- **Pre-tripped** — `{ \"value\": true }` to ship the killswitch already engaged.\n- **With switches** — seed `switches` to carve out per-region/per-tenant kills from day one.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2501,7 +2587,9 @@
         "operationId": "getKillswitch",
         "summary": "Get one killswitch",
         "description": "Returns the killswitch metadata plus the latest published `value`/`switches`/`version` per env.\n\n**Use case:** Fetch the current state of one killswitch — e.g. to verify a trip propagated before declaring an incident mitigated.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2577,7 +2665,9 @@
         "operationId": "updateKillswitch",
         "summary": "Update a killswitch",
         "description": "Partial update applied to **every** env. Setting `value`/`switches` publishes a new version per env. Description-only patches don't bump versions.\n\nTo change a single switch on a single env, use `PUT /{id}/switch` instead.\n\n**Use cases**\n\n- **Trip everywhere** — `{ \"value\": true }`. Kills the feature across dev/stage/prod in one call.\n- **Untrip everywhere** — `{ \"value\": false }`.\n- **Replace switches** — send the full new map; per-key edits use `PUT /{id}/switch`.\n- **Update description** — metadata-only patches don't bump versions.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2673,7 +2763,9 @@
         "operationId": "deleteKillswitch",
         "summary": "Delete a killswitch",
         "description": "Soft-deletes the killswitch and rebuilds the project's flags KV blob so SDKs stop seeing it.\n\n**Use case:** Tear down a killswitch after the feature it protected has been removed.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2728,7 +2820,9 @@
         "operationId": "setKillswitchSwitch",
         "summary": "Set one switch entry",
         "description": "Sets or updates a single `switchKey` on a single `env`. Publishes one new version on that env only — other envs untouched.\n\nUse this for surgical per-env, per-key flips during incident response (e.g. trip `eu_region` on prod without touching the flat `value` or other envs).\n\n**Use cases**\n\n- **Trip a region** — `{ \"env\": \"prod\", \"switchKey\": \"eu_region\", \"value\": true }`.\n- **Untrip without removing** — same payload with `value: false`. To remove the entry entirely use `DELETE /{id}/switch`.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2814,7 +2908,9 @@
         "operationId": "unsetKillswitchSwitch",
         "summary": "Remove one switch entry",
         "description": "Removes a single `switchKey` from the `switches` map on a single `env`. Publishes a new version on that env.\n\nReturns `{ removed: false }` if the entry didn't exist (idempotent no-op).\n\n**Use case:** Clean up a per-region override after the incident is resolved so the flat `value` governs again.",
-        "tags": ["Killswitches"],
+        "tags": [
+          "Killswitches"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2892,7 +2988,9 @@
         "operationId": "listUniverses",
         "summary": "List universes",
         "description": "Returns a single page of universes ordered by `created_at desc, id desc`. The universes table has no `updated_at`, so this list is keyed on creation time.\n\n**Use case:** Snapshot every universe in the project — for example to audit which `unit_type` and `holdout_range` are in use before launching a new experiment.",
-        "tags": ["Universes"],
+        "tags": [
+          "Universes"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2918,7 +3016,10 @@
                       "id": "uni_01j7w8a1b2c3d4e5f6g7h8i9j0",
                       "name": "primary_users",
                       "unitType": "user_id",
-                      "holdoutRange": [9500, 9999],
+                      "holdoutRange": [
+                        9500,
+                        9999
+                      ],
                       "createdAt": "2026-04-12T10:14:08.000Z"
                     }
                   ],
@@ -2951,7 +3052,9 @@
         "operationId": "createUniverse",
         "summary": "Create a universe",
         "description": "Creates a new universe. Only `name` is required — `unit_type` defaults to `user_id` and `holdout_range` defaults to `null` (no holdout).\n\nReturns `409` if `name` already exists in the project. Returns `403` if you supply `holdout_range` on a plan below Pro.\n\n**Use cases**\n\n- **Default universe** — `{ \"name\": \"primary_users\" }`. Per-user randomisation, no holdout.\n- **Reserved holdout** — supply `holdout_range` to carve out a measurement slice excluded from all experiments.\n- **Account-level** — `unit_type: 'account_id'` so multi-seat accounts see one consistent variant.",
-        "tags": ["Universes"],
+        "tags": [
+          "Universes"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -2977,7 +3080,10 @@
                   "description": "Reserves buckets 9500–9999 (5% of callers) as the holdout. Pro plan or higher.",
                   "value": {
                     "name": "primary_users",
-                    "holdout_range": [9500, 9999]
+                    "holdout_range": [
+                      9500,
+                      9999
+                    ]
                   }
                 },
                 "accountLevel": {
@@ -3033,7 +3139,9 @@
         "operationId": "updateUniverse",
         "summary": "Update a universe",
         "description": "Partial update. Only `holdout_range` is mutable — `name` and `unit_type` are immutable after create.\n\nPass `\"holdout_range\": null` to remove an existing holdout.\n\n**Use cases**\n\n- **Adjust holdout** — change the reserved measurement slice without recreating experiments.\n- **Remove holdout** — `{ \"holdout_range\": null }`.",
-        "tags": ["Universes"],
+        "tags": [
+          "Universes"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -3060,7 +3168,10 @@
                   "summary": "Set holdout — reserve 5%",
                   "description": "Reserve buckets 9500–9999 as the holdout. Pro plan or higher.",
                   "value": {
-                    "holdout_range": [9500, 9999]
+                    "holdout_range": [
+                      9500,
+                      9999
+                    ]
                   }
                 },
                 "removeHoldout": {
@@ -3112,7 +3223,9 @@
         "operationId": "deleteUniverse",
         "summary": "Delete a universe",
         "description": "Soft-deletes the universe. Returns `409` if any non-archived experiment still references it — archive those experiments first.\n\n**Use case:** Tear down a universe after every experiment that used it has been archived.",
-        "tags": ["Universes"],
+        "tags": [
+          "Universes"
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ProjectId"
@@ -3167,7 +3280,9 @@
     "schemas": {
       "ErrorResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string",
@@ -3198,8 +3313,9 @@
                 },
                 "name": {
                   "type": "string",
-                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-                  "description": "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Lowercase letters, digits, `_` or `-`, must start with a letter/digit, max 64 chars. Immutable after create — rename = delete + recreate."
+                  "maxLength": 128,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+                  "description": "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create — rename = delete + recreate."
                 },
                 "enabled": {
                   "anyOf": [
@@ -3242,15 +3358,23 @@
                           "lt",
                           "lte",
                           "contains",
-                          "regex"
+                          "regex",
+                          "semver_gt",
+                          "semver_gte",
+                          "semver_lt",
+                          "semver_lte"
                         ],
-                        "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                        "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
                       },
                       "value": {
-                        "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains`; array of scalars for `in/not_in`; string pattern for `regex`."
+                        "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
                       }
                     },
-                    "required": ["attr", "op", "value"],
+                    "required": [
+                      "attr",
+                      "op",
+                      "value"
+                    ],
                     "additionalProperties": false,
                     "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                   }
@@ -3348,7 +3472,10 @@
                               "pass": {
                                 "description": "Combinator across `rules`. `all` = AND (default), `any` = OR.",
                                 "type": "string",
-                                "enum": ["all", "any"]
+                                "enum": [
+                                  "all",
+                                  "any"
+                                ]
                               },
                               "rules": {
                                 "default": [],
@@ -3374,15 +3501,23 @@
                                         "lt",
                                         "lte",
                                         "contains",
-                                        "regex"
+                                        "regex",
+                                        "semver_gt",
+                                        "semver_gte",
+                                        "semver_lt",
+                                        "semver_lte"
                                       ],
-                                      "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                                      "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
                                     },
                                     "value": {
-                                      "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains`; array of scalars for `in/not_in`; string pattern for `regex`."
+                                      "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
                                     }
                                   },
-                                  "required": ["attr", "op", "value"],
+                                  "required": [
+                                    "attr",
+                                    "op",
+                                    "value"
+                                  ],
                                   "additionalProperties": false,
                                   "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                                 }
@@ -3392,7 +3527,11 @@
                                 "type": "boolean"
                               }
                             },
-                            "required": ["id", "type", "rules"],
+                            "required": [
+                              "id",
+                              "type",
+                              "rules"
+                            ],
                             "additionalProperties": false,
                             "description": "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller."
                           },
@@ -3443,7 +3582,11 @@
                                 "type": "boolean"
                               }
                             },
-                            "required": ["id", "type", "rolloutPct"],
+                            "required": [
+                              "id",
+                              "type",
+                              "rolloutPct"
+                            ],
                             "additionalProperties": false,
                             "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers."
                           }
@@ -3461,7 +3604,13 @@
                   "description": "ISO-8601 timestamp of last mutation."
                 }
               },
-              "required": ["id", "name", "enabled", "rolloutPct", "updatedAt"],
+              "required": [
+                "id",
+                "name",
+                "enabled",
+                "rolloutPct",
+                "updatedAt"
+              ],
               "additionalProperties": false
             }
           },
@@ -3476,7 +3625,10 @@
             ]
           }
         },
-        "required": ["data", "next_cursor"],
+        "required": [
+          "data",
+          "next_cursor"
+        ],
         "additionalProperties": false
       },
       "CreateGateRequest": {
@@ -3484,8 +3636,9 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Lowercase letters, digits, `_` or `-`, must start with a letter/digit, max 64 chars. Immutable after create — rename = delete + recreate."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create — rename = delete + recreate."
           },
           "enabled": {
             "default": true,
@@ -3494,10 +3647,16 @@
           },
           "rollout_pct": {
             "default": 0,
-            "description": "Initial rollout in basis points (0–10000 = 0%–100%). Use `0` to create the gate dark and ramp via PATCH after deploy validation.",
+            "description": "Initial rollout in **basis points** (0–10000 = 0%–100%) — `100` here means **1%**, not 100%. Use `rollout_percent` (0–100) below if you'd rather think in percent. Use `0` to create the gate dark and ramp via PATCH after deploy validation.",
             "type": "integer",
             "minimum": 0,
             "maximum": 10000
+          },
+          "rollout_percent": {
+            "description": "Initial rollout as a **percentage** (0–100, fractional ok). Friendlier alias for `rollout_pct`; converted internally to basis points (e.g. `100` here = 10000 bp = 100%). If both `rollout_pct` and `rollout_percent` are set, `rollout_percent` wins.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           },
           "rules": {
             "default": [],
@@ -3523,15 +3682,23 @@
                     "lt",
                     "lte",
                     "contains",
-                    "regex"
+                    "regex",
+                    "semver_gt",
+                    "semver_gte",
+                    "semver_lt",
+                    "semver_lte"
                   ],
-                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
                 },
                 "value": {
-                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains`; array of scalars for `in/not_in`; string pattern for `regex`."
+                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
                 }
               },
-              "required": ["attr", "op", "value"],
+              "required": [
+                "attr",
+                "op",
+                "value"
+              ],
               "additionalProperties": false,
               "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
             }
@@ -3580,7 +3747,10 @@
                         "pass": {
                           "description": "Combinator across `rules`. `all` = AND (default), `any` = OR.",
                           "type": "string",
-                          "enum": ["all", "any"]
+                          "enum": [
+                            "all",
+                            "any"
+                          ]
                         },
                         "rules": {
                           "default": [],
@@ -3606,15 +3776,23 @@
                                   "lt",
                                   "lte",
                                   "contains",
-                                  "regex"
+                                  "regex",
+                                  "semver_gt",
+                                  "semver_gte",
+                                  "semver_lt",
+                                  "semver_lte"
                                 ],
-                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
                               },
                               "value": {
-                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains`; array of scalars for `in/not_in`; string pattern for `regex`."
+                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
                               }
                             },
-                            "required": ["attr", "op", "value"],
+                            "required": [
+                              "attr",
+                              "op",
+                              "value"
+                            ],
                             "additionalProperties": false,
                             "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                           }
@@ -3624,7 +3802,11 @@
                           "type": "boolean"
                         }
                       },
-                      "required": ["id", "type", "rules"],
+                      "required": [
+                        "id",
+                        "type",
+                        "rules"
+                      ],
                       "additionalProperties": false,
                       "description": "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller."
                     },
@@ -3675,7 +3857,11 @@
                           "type": "boolean"
                         }
                       },
-                      "required": ["id", "type", "rolloutPct"],
+                      "required": [
+                        "id",
+                        "type",
+                        "rolloutPct"
+                      ],
                       "additionalProperties": false,
                       "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers."
                     }
@@ -3699,9 +3885,17 @@
             "maxLength": 2000
           },
           "folder": {
-            "description": "Folder label for dashboard organisation. Free-form; folders are inferred from the set of values.",
-            "type": "string",
-            "maxLength": 64
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "group": {
             "description": "Group label for dashboard organisation (e.g. team or product area).",
@@ -3714,7 +3908,12 @@
             "maxLength": 190
           }
         },
-        "required": ["name", "enabled", "rollout_pct", "rules"],
+        "required": [
+          "name",
+          "enabled",
+          "rollout_pct",
+          "rules"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/gates`. At minimum supply `name`; everything else has sensible defaults."
       },
@@ -3727,21 +3926,31 @@
           },
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Lowercase letters, digits, `_` or `-`, must start with a letter/digit, max 64 chars. Immutable after create — rename = delete + recreate."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create — rename = delete + recreate."
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false
       },
       "UpdateGateRequest": {
         "type": "object",
         "properties": {
           "rollout_pct": {
-            "description": "New rollout in basis points (0–10000 = 0%–100%). Omit to leave unchanged.",
+            "description": "New rollout in **basis points** (0–10000 = 0%–100%) — `100` here means **1%**. Use `rollout_percent` (0–100) below for percent. Omit both to leave unchanged.",
             "type": "integer",
             "minimum": 0,
             "maximum": 10000
+          },
+          "rollout_percent": {
+            "description": "New rollout as a **percentage** (0–100). Friendlier alias for `rollout_pct`; converted internally. Wins over `rollout_pct` if both are supplied. Omit both to leave unchanged.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           },
           "rules": {
             "description": "Replaces the rule list wholesale. To add a value to an `in` rule, send the full new `rules` array with the augmented `value` (e.g. previous `['US','CA']` → `['US','CA','GB']`).",
@@ -3766,15 +3975,23 @@
                     "lt",
                     "lte",
                     "contains",
-                    "regex"
+                    "regex",
+                    "semver_gt",
+                    "semver_gte",
+                    "semver_lt",
+                    "semver_lte"
                   ],
-                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
                 },
                 "value": {
-                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains`; array of scalars for `in/not_in`; string pattern for `regex`."
+                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
                 }
               },
-              "required": ["attr", "op", "value"],
+              "required": [
+                "attr",
+                "op",
+                "value"
+              ],
               "additionalProperties": false,
               "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
             }
@@ -3821,7 +4038,10 @@
                         "pass": {
                           "description": "Combinator across `rules`. `all` = AND (default), `any` = OR.",
                           "type": "string",
-                          "enum": ["all", "any"]
+                          "enum": [
+                            "all",
+                            "any"
+                          ]
                         },
                         "rules": {
                           "default": [],
@@ -3847,15 +4067,23 @@
                                   "lt",
                                   "lte",
                                   "contains",
-                                  "regex"
+                                  "regex",
+                                  "semver_gt",
+                                  "semver_gte",
+                                  "semver_lt",
+                                  "semver_lte"
                                 ],
-                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
                               },
                               "value": {
-                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains`; array of scalars for `in/not_in`; string pattern for `regex`."
+                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
                               }
                             },
-                            "required": ["attr", "op", "value"],
+                            "required": [
+                              "attr",
+                              "op",
+                              "value"
+                            ],
                             "additionalProperties": false,
                             "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                           }
@@ -3865,7 +4093,11 @@
                           "type": "boolean"
                         }
                       },
-                      "required": ["id", "type", "rules"],
+                      "required": [
+                        "id",
+                        "type",
+                        "rules"
+                      ],
                       "additionalProperties": false,
                       "description": "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller."
                     },
@@ -3916,7 +4148,11 @@
                           "type": "boolean"
                         }
                       },
-                      "required": ["id", "type", "rolloutPct"],
+                      "required": [
+                        "id",
+                        "type",
+                        "rolloutPct"
+                      ],
                       "additionalProperties": false,
                       "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers."
                     }
@@ -3940,9 +4176,17 @@
             "maxLength": 2000
           },
           "folder": {
-            "description": "Folder label for dashboard organisation. Free-form; folders are inferred from the set of values.",
-            "type": "string",
-            "maxLength": 64
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "group": {
             "description": "Group label for dashboard organisation (e.g. team or product area).",
@@ -3966,7 +4210,9 @@
             "description": "Gate id that was updated."
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false,
         "description": "Update returns only the id — re-fetch via `GET /api/admin/gates` for the full row."
       },
@@ -3978,7 +4224,9 @@
             "const": true
           }
         },
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "additionalProperties": false
       },
       "EnableGateResponse": {
@@ -3991,7 +4239,10 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "enabled"],
+        "required": [
+          "id",
+          "enabled"
+        ],
         "additionalProperties": false
       },
       "DisableGateResponse": {
@@ -4004,7 +4255,10 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "enabled"],
+        "required": [
+          "id",
+          "enabled"
+        ],
         "additionalProperties": false
       },
       "ListExperimentsResponse": {
@@ -4021,10 +4275,21 @@
                 },
                 "name": {
                   "type": "string",
-                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-                  "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+                  "maxLength": 128,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+                  "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
                 },
                 "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "hypothesis": {
                   "anyOf": [
                     {
                       "type": "string"
@@ -4044,9 +4309,60 @@
                     }
                   ]
                 },
+                "ownerEmail": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "audience": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "bucketBy": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "user_id",
+                        "session_id",
+                        "device_id"
+                      ],
+                      "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "folder": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "status": {
                   "type": "string",
-                  "enum": ["draft", "running", "stopped", "archived"]
+                  "enum": [
+                    "draft",
+                    "running",
+                    "stopped",
+                    "archived"
+                  ]
                 },
                 "universe": {
                   "type": "string",
@@ -4075,7 +4391,11 @@
                   "type": "object",
                   "additionalProperties": {
                     "type": "string",
-                    "enum": ["string", "bool", "number"]
+                    "enum": [
+                      "string",
+                      "bool",
+                      "number"
+                    ]
                   }
                 },
                 "groups": {
@@ -4102,7 +4422,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["name", "weight", "params"],
+                    "required": [
+                      "name",
+                      "weight",
+                      "params"
+                    ],
                     "additionalProperties": false,
                     "description": "One variant in the experiment. Weights across all groups must sum to 10000."
                   }
@@ -4152,7 +4476,12 @@
                 "id",
                 "name",
                 "description",
+                "hypothesis",
                 "tag",
+                "ownerEmail",
+                "audience",
+                "bucketBy",
+                "folder",
                 "status",
                 "universe",
                 "targetingGate",
@@ -4181,7 +4510,10 @@
             ]
           }
         },
-        "required": ["data", "next_cursor"],
+        "required": [
+          "data",
+          "next_cursor"
+        ],
         "additionalProperties": false
       },
       "GetExperimentResponse": {
@@ -4193,10 +4525,21 @@
           },
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
           },
           "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hypothesis": {
             "anyOf": [
               {
                 "type": "string"
@@ -4216,9 +4559,60 @@
               }
             ]
           },
+          "ownerEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bucketBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user_id",
+                  "session_id",
+                  "device_id"
+                ],
+                "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "folder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "type": "string",
-            "enum": ["draft", "running", "stopped", "archived"]
+            "enum": [
+              "draft",
+              "running",
+              "stopped",
+              "archived"
+            ]
           },
           "universe": {
             "type": "string",
@@ -4247,7 +4641,11 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "enum": ["string", "bool", "number"]
+              "enum": [
+                "string",
+                "bool",
+                "number"
+              ]
             }
           },
           "groups": {
@@ -4274,7 +4672,11 @@
                   "additionalProperties": {}
                 }
               },
-              "required": ["name", "weight", "params"],
+              "required": [
+                "name",
+                "weight",
+                "params"
+              ],
               "additionalProperties": false,
               "description": "One variant in the experiment. Weights across all groups must sum to 10000."
             }
@@ -4324,7 +4726,12 @@
           "id",
           "name",
           "description",
+          "hypothesis",
           "tag",
+          "ownerEmail",
+          "audience",
+          "bucketBy",
+          "folder",
           "status",
           "universe",
           "targetingGate",
@@ -4346,8 +4753,9 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
           },
           "description": {
             "default": null,
@@ -4362,13 +4770,82 @@
               }
             ]
           },
+          "hypothesis": {
+            "default": null,
+            "description": "Hypothesis statement shown in the editor. Display-only.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tag": {
             "default": null,
-            "description": "Optional tag used to group experiments in the dashboard.",
+            "description": "Short tag chip rendered next to the name. Display-only.",
             "anyOf": [
               {
                 "type": "string",
                 "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_email": {
+            "default": null,
+            "description": "Owner email. Display-only.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "audience": {
+            "default": null,
+            "description": "Audience label shown in the editor. Display-only.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bucket_by": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user_id",
+                  "session_id",
+                  "device_id"
+                ],
+                "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
               },
               {
                 "type": "null"
@@ -4410,7 +4887,11 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "enum": ["string", "bool", "number"]
+              "enum": [
+                "string",
+                "bool",
+                "number"
+              ]
             },
             "description": "Map of param-name → scalar type. Defines the shape of `groups[].params`. Example: `{ headline: 'string', show_cta: 'bool' }`."
           },
@@ -4439,7 +4920,11 @@
                   "additionalProperties": {}
                 }
               },
-              "required": ["name", "weight", "params"],
+              "required": [
+                "name",
+                "weight",
+                "params"
+              ],
               "additionalProperties": false,
               "description": "One variant in the experiment. Weights across all groups must sum to 10000."
             },
@@ -4470,12 +4955,63 @@
             "default": false,
             "description": "Enable sequential testing (always-valid p-values). Requires Premium plan or higher.",
             "type": "boolean"
+          },
+          "goal_metric": {
+            "description": "Single goal metric defined inline as a DSL query. The underlying event is auto-created if missing.",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$"
+              },
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Metric DSL string, e.g. `count_users(checkout_completed)`."
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "additionalProperties": false
+          },
+          "guardrail_metrics": {
+            "default": [],
+            "description": "Up to 10 guardrail metrics defined inline. Each is upserted (event + metric) and attached with role=guardrail.",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$"
+                },
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "description": "Metric DSL string, e.g. `count_users(checkout_completed)`."
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
           "name",
           "description",
+          "hypothesis",
           "tag",
+          "owner_email",
+          "audience",
+          "bucket_by",
           "universe",
           "targeting_gate",
           "allocation_pct",
@@ -4484,7 +5020,8 @@
           "significance_threshold",
           "min_runtime_days",
           "min_sample_size",
-          "sequential_testing"
+          "sequential_testing",
+          "guardrail_metrics"
         ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/experiments`. `name`, `universe`, and `groups` (≥2, weights sum to 10000) required."
@@ -4498,11 +5035,15 @@
           },
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false
       },
       "UpdateExperimentRequest": {
@@ -4510,8 +5051,9 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
           },
           "description": {
             "anyOf": [
@@ -4524,11 +5066,73 @@
               }
             ]
           },
+          "hypothesis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tag": {
             "anyOf": [
               {
                 "type": "string",
                 "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bucket_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user_id",
+                  "session_id",
+                  "device_id"
+                ],
+                "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
               },
               {
                 "type": "null"
@@ -4565,7 +5169,11 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "enum": ["string", "bool", "number"]
+              "enum": [
+                "string",
+                "bool",
+                "number"
+              ]
             },
             "description": "Map of param-name → scalar type. Defines the shape of `groups[].params`. Example: `{ headline: 'string', show_cta: 'bool' }`."
           },
@@ -4595,7 +5203,11 @@
                   "additionalProperties": {}
                 }
               },
-              "required": ["name", "weight", "params"],
+              "required": [
+                "name",
+                "weight",
+                "params"
+              ],
               "additionalProperties": false,
               "description": "One variant in the experiment. Weights across all groups must sum to 10000."
             }
@@ -4617,6 +5229,52 @@
           },
           "sequential_testing": {
             "type": "boolean"
+          },
+          "goal_metric": {
+            "description": "Replaces the goal metric (event auto-upserted).",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$"
+              },
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Metric DSL string, e.g. `count_users(checkout_completed)`."
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "additionalProperties": false
+          },
+          "guardrail_metrics": {
+            "description": "Replaces the guardrail set wholesale (event auto-upserted per entry).",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$"
+                },
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "description": "Metric DSL string, e.g. `count_users(checkout_completed)`."
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false,
@@ -4630,7 +5288,9 @@
             "description": "Experiment id that was updated."
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false
       },
       "DeleteExperimentResponse": {
@@ -4641,7 +5301,9 @@
             "const": true
           }
         },
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "additionalProperties": false
       },
       "SetExperimentStatusRequest": {
@@ -4649,11 +5311,18 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["draft", "running", "stopped", "archived"],
-            "description": "Target status. Allowed transitions: `draft → running`, `running → stopped`, `stopped → archived`, `draft → archived`. Restarting an archived experiment is not allowed."
+            "enum": [
+              "draft",
+              "running",
+              "stopped",
+              "archived"
+            ],
+            "description": "Target status. Allowed transitions: `draft → running`, `running → stopped`, `stopped → archived`, `draft → archived`, and `archived → draft` (restore — only if the experiment never started). Restarting an archived experiment directly is not allowed; restore it to draft first, then start."
           }
         },
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/experiments/{id}/status`."
       },
@@ -4665,10 +5334,18 @@
           },
           "status": {
             "type": "string",
-            "enum": ["draft", "running", "stopped", "archived"]
+            "enum": [
+              "draft",
+              "running",
+              "stopped",
+              "archived"
+            ]
           }
         },
-        "required": ["id", "status"],
+        "required": [
+          "id",
+          "status"
+        ],
         "additionalProperties": false
       },
       "SetExperimentMetricsRequest": {
@@ -4685,17 +5362,26 @@
                 },
                 "role": {
                   "type": "string",
-                  "enum": ["goal", "guardrail", "secondary"],
+                  "enum": [
+                    "goal",
+                    "guardrail",
+                    "secondary"
+                  ],
                   "description": "Metric role. `goal` drives the decision, `guardrail` blocks ship if degraded, `secondary` is informational."
                 }
               },
-              "required": ["metric_id", "role"],
+              "required": [
+                "metric_id",
+                "role"
+              ],
               "additionalProperties": false
             },
             "description": "Replacement metrics list — replaces the current attachments wholesale."
           }
         },
-        "required": ["metrics"],
+        "required": [
+          "metrics"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/experiments/{id}/metrics`. Replaces the experiment's metric attachments wholesale. Returns `422` if any `metric_id` is unknown."
       },
@@ -4715,15 +5401,25 @@
                 },
                 "role": {
                   "type": "string",
-                  "enum": ["goal", "guardrail", "secondary"]
+                  "enum": [
+                    "goal",
+                    "guardrail",
+                    "secondary"
+                  ]
                 }
               },
-              "required": ["metric_id", "role"],
+              "required": [
+                "metric_id",
+                "role"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["id", "metrics"],
+        "required": [
+          "id",
+          "metrics"
+        ],
         "additionalProperties": false
       },
       "GetExperimentResultsResponse": {
@@ -4737,15 +5433,25 @@
               },
               "name": {
                 "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-                "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+                "maxLength": 128,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+                "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
               },
               "status": {
                 "type": "string",
-                "enum": ["draft", "running", "stopped", "archived"]
+                "enum": [
+                  "draft",
+                  "running",
+                  "stopped",
+                  "archived"
+                ]
               }
             },
-            "required": ["id", "name", "status"],
+            "required": [
+              "id",
+              "name",
+              "status"
+            ],
             "additionalProperties": false
           },
           "results": {
@@ -4829,7 +5535,10 @@
             }
           }
         },
-        "required": ["experiment", "results"],
+        "required": [
+          "experiment",
+          "results"
+        ],
         "additionalProperties": false
       },
       "GetExperimentTimeseriesResponse": {
@@ -4843,15 +5552,25 @@
               },
               "name": {
                 "type": "string",
-                "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-                "description": "Stable experiment key (a-z, 0-9, `_`/`-`, must start with letter/digit, max 64 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
+                "maxLength": 128,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+                "description": "Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create."
               },
               "status": {
                 "type": "string",
-                "enum": ["draft", "running", "stopped", "archived"]
+                "enum": [
+                  "draft",
+                  "running",
+                  "stopped",
+                  "archived"
+                ]
               }
             },
-            "required": ["id", "name", "status"],
+            "required": [
+              "id",
+              "name",
+              "status"
+            ],
             "additionalProperties": false
           },
           "series": {
@@ -4935,7 +5654,10 @@
             }
           }
         },
-        "required": ["experiment", "series"],
+        "required": [
+          "experiment",
+          "series"
+        ],
         "additionalProperties": false
       },
       "ReanalyzeExperimentResponse": {
@@ -4949,7 +5671,10 @@
             "const": true
           }
         },
-        "required": ["id", "queued"],
+        "required": [
+          "id",
+          "queued"
+        ],
         "additionalProperties": false
       },
       "ListConfigsResponse": {
@@ -5008,10 +5733,18 @@
                         "description": "Email/id of the actor who published this version."
                       }
                     },
-                    "required": ["version", "publishedAt", "publishedBy"],
+                    "required": [
+                      "version",
+                      "publishedAt",
+                      "publishedBy"
+                    ],
                     "additionalProperties": false
                   },
-                  "required": ["dev", "staging", "prod"],
+                  "required": [
+                    "dev",
+                    "staging",
+                    "prod"
+                  ],
                   "description": "Per-env latest published version metadata."
                 },
                 "drafts": {
@@ -5034,26 +5767,50 @@
                         "description": "Published version the draft was forked from."
                       }
                     },
-                    "required": ["updatedAt", "authorEmail", "baseVersion"],
+                    "required": [
+                      "updatedAt",
+                      "authorEmail",
+                      "baseVersion"
+                    ],
                     "additionalProperties": false
                   },
-                  "required": ["dev", "staging", "prod"],
+                  "required": [
+                    "dev",
+                    "staging",
+                    "prod"
+                  ],
                   "description": "Per-env active drafts (if any)."
                 },
                 "values": {
                   "description": "Per-env latest published values (only returned by `GET /{id}`, not list).",
                   "type": "object",
                   "additionalProperties": {},
-                  "required": ["dev", "staging", "prod"]
+                  "required": [
+                    "dev",
+                    "staging",
+                    "prod"
+                  ]
                 },
                 "draftValues": {
                   "description": "Per-env draft values (only returned by `GET /{id}`).",
                   "type": "object",
                   "additionalProperties": {},
-                  "required": ["dev", "staging", "prod"]
+                  "required": [
+                    "dev",
+                    "staging",
+                    "prod"
+                  ]
                 }
               },
-              "required": ["id", "name", "description", "schema", "updatedAt", "envs", "drafts"],
+              "required": [
+                "id",
+                "name",
+                "description",
+                "schema",
+                "updatedAt",
+                "envs",
+                "drafts"
+              ],
               "additionalProperties": false
             }
           },
@@ -5068,7 +5825,10 @@
             ]
           }
         },
-        "required": ["data", "next_cursor"],
+        "required": [
+          "data",
+          "next_cursor"
+        ],
         "additionalProperties": false
       },
       "GetConfigResponse": {
@@ -5122,10 +5882,18 @@
                   "description": "Email/id of the actor who published this version."
                 }
               },
-              "required": ["version", "publishedAt", "publishedBy"],
+              "required": [
+                "version",
+                "publishedAt",
+                "publishedBy"
+              ],
               "additionalProperties": false
             },
-            "required": ["dev", "staging", "prod"],
+            "required": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Per-env latest published version metadata."
           },
           "drafts": {
@@ -5148,26 +5916,50 @@
                   "description": "Published version the draft was forked from."
                 }
               },
-              "required": ["updatedAt", "authorEmail", "baseVersion"],
+              "required": [
+                "updatedAt",
+                "authorEmail",
+                "baseVersion"
+              ],
               "additionalProperties": false
             },
-            "required": ["dev", "staging", "prod"],
+            "required": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Per-env active drafts (if any)."
           },
           "values": {
             "description": "Per-env latest published values (only returned by `GET /{id}`, not list).",
             "type": "object",
             "additionalProperties": {},
-            "required": ["dev", "staging", "prod"]
+            "required": [
+              "dev",
+              "staging",
+              "prod"
+            ]
           },
           "draftValues": {
             "description": "Per-env draft values (only returned by `GET /{id}`).",
             "type": "object",
             "additionalProperties": {},
-            "required": ["dev", "staging", "prod"]
+            "required": [
+              "dev",
+              "staging",
+              "prod"
+            ]
           }
         },
-        "required": ["id", "name", "description", "schema", "updatedAt", "envs", "drafts"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "schema",
+          "updatedAt",
+          "envs",
+          "drafts"
+        ],
         "additionalProperties": false
       },
       "CreateConfigRequest": {
@@ -5183,6 +5975,19 @@
             "type": "string",
             "maxLength": 512
           },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "schema": {
             "type": "object",
             "additionalProperties": {},
@@ -5194,13 +5999,20 @@
               {
                 "type": "object",
                 "additionalProperties": {},
-                "required": ["dev", "staging", "prod"]
+                "required": [
+                  "dev",
+                  "staging",
+                  "prod"
+                ]
               }
             ],
             "description": "Initial config value. Either a single JSON object applied to every env, or a `{ env: value }` map seeding per-env values. Must match `schema`. Defaults to `{}` on every env when omitted."
           }
         },
-        "required": ["name", "schema"],
+        "required": [
+          "name",
+          "schema"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/configs`. `name` + `schema` required."
       },
@@ -5217,7 +6029,10 @@
             "description": "Stable config key in `folder.name` form (two lowercase segments separated by a dot, e.g. `pricing.tiers`). Used by SDKs as `Shipeasy.getConfig('<name>')`. Immutable after create."
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false
       },
       "UpdateConfigRequest": {
@@ -5230,6 +6045,19 @@
           },
           "value": {
             "description": "Flat value applied to **every** env. Publishes a new version per env. To target one env, use `PUT /{id}/drafts` then `POST /{id}/publish`."
+          },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5243,7 +6071,9 @@
             "description": "Config id that was updated."
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false
       },
       "DeleteConfigResponse": {
@@ -5254,7 +6084,9 @@
             "const": true
           }
         },
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "additionalProperties": false
       },
       "SaveConfigDraftRequest": {
@@ -5262,14 +6094,21 @@
         "properties": {
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           },
           "value": {
             "description": "Draft value to stage on `env`. Validated against the config's current schema."
           }
         },
-        "required": ["env", "value"],
+        "required": [
+          "env",
+          "value"
+        ],
         "additionalProperties": false,
         "description": "Body for `PUT /api/admin/configs/{id}/drafts`. Stages a value for a single env without publishing."
       },
@@ -5281,7 +6120,11 @@
           },
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           },
           "baseVersion": {
@@ -5294,7 +6137,12 @@
             "type": "string"
           }
         },
-        "required": ["id", "env", "baseVersion", "updatedAt"],
+        "required": [
+          "id",
+          "env",
+          "baseVersion",
+          "updatedAt"
+        ],
         "additionalProperties": false
       },
       "DiscardConfigDraftRequest": {
@@ -5302,11 +6150,17 @@
         "properties": {
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           }
         },
-        "required": ["env"],
+        "required": [
+          "env"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/configs/{id}/publish` and `DELETE /api/admin/configs/{id}/drafts`. Names the target env."
       },
@@ -5318,7 +6172,9 @@
             "const": true
           }
         },
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "additionalProperties": false
       },
       "PublishConfigDraftRequest": {
@@ -5326,11 +6182,17 @@
         "properties": {
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           }
         },
-        "required": ["env"],
+        "required": [
+          "env"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/configs/{id}/publish` and `DELETE /api/admin/configs/{id}/drafts`. Names the target env."
       },
@@ -5342,7 +6204,11 @@
           },
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           },
           "version": {
@@ -5352,7 +6218,11 @@
             "description": "Newly published version on `env`."
           }
         },
-        "required": ["id", "env", "version"],
+        "required": [
+          "id",
+          "env",
+          "version"
+        ],
         "additionalProperties": false
       },
       "ListConfigActivityResponse": {
@@ -5372,7 +6242,11 @@
             },
             "actorType": {
               "type": "string",
-              "enum": ["user", "cli", "system"]
+              "enum": [
+                "user",
+                "cli",
+                "system"
+              ]
             },
             "payload": {
               "anyOf": [
@@ -5387,7 +6261,14 @@
               "description": "ISO-8601 timestamp."
             }
           },
-          "required": ["id", "action", "actorEmail", "actorType", "payload", "createdAt"],
+          "required": [
+            "id",
+            "action",
+            "actorEmail",
+            "actorType",
+            "payload",
+            "createdAt"
+          ],
           "additionalProperties": false
         },
         "description": "Recent audit rows for one config, newest first."
@@ -5450,14 +6331,28 @@
                         "description": "ISO-8601 publish timestamp for this version."
                       }
                     },
-                    "required": ["value", "version", "publishedAt"],
+                    "required": [
+                      "value",
+                      "version",
+                      "publishedAt"
+                    ],
                     "additionalProperties": false
                   },
-                  "required": ["dev", "staging", "prod"],
+                  "required": [
+                    "dev",
+                    "staging",
+                    "prod"
+                  ],
                   "description": "Per-env latest value, switches, version, and publish timestamp."
                 }
               },
-              "required": ["id", "name", "description", "updatedAt", "envs"],
+              "required": [
+                "id",
+                "name",
+                "description",
+                "updatedAt",
+                "envs"
+              ],
               "additionalProperties": false
             }
           },
@@ -5472,7 +6367,10 @@
             ]
           }
         },
-        "required": ["data", "next_cursor"],
+        "required": [
+          "data",
+          "next_cursor"
+        ],
         "additionalProperties": false
       },
       "GetKillswitchResponse": {
@@ -5528,14 +6426,28 @@
                   "description": "ISO-8601 publish timestamp for this version."
                 }
               },
-              "required": ["value", "version", "publishedAt"],
+              "required": [
+                "value",
+                "version",
+                "publishedAt"
+              ],
               "additionalProperties": false
             },
-            "required": ["dev", "staging", "prod"],
+            "required": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Per-env latest value, switches, version, and publish timestamp."
           }
         },
-        "required": ["id", "name", "description", "updatedAt", "envs"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "updatedAt",
+          "envs"
+        ],
         "additionalProperties": false
       },
       "CreateKillswitchRequest": {
@@ -5551,6 +6463,19 @@
             "type": "string",
             "maxLength": 512
           },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "value": {
             "description": "Default value applied to every env at creation. Defaults to `false`. Use `true` to ship the killswitch pre-tripped.",
             "type": "boolean"
@@ -5563,7 +6488,9 @@
             }
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/killswitches`. Only `name` is required."
       },
@@ -5580,7 +6507,10 @@
             "description": "Stable config key in `folder.name` form (two lowercase segments separated by a dot, e.g. `pricing.tiers`). Used by SDKs as `Shipeasy.getConfig('<name>')`. Immutable after create."
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false
       },
       "UpdateKillswitchRequest": {
@@ -5592,6 +6522,19 @@
               {
                 "type": "string",
                 "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
               },
               {
                 "type": "null"
@@ -5621,7 +6564,9 @@
             "description": "Killswitch id that was updated."
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false
       },
       "DeleteKillswitchResponse": {
@@ -5632,7 +6577,9 @@
             "const": true
           }
         },
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "additionalProperties": false
       },
       "SetKillswitchSwitchRequest": {
@@ -5640,7 +6587,11 @@
         "properties": {
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment (`dev`/`stage`/`prod`)."
           },
           "switchKey": {
@@ -5654,7 +6605,11 @@
             "description": "New boolean value for this `switchKey` on this `env`."
           }
         },
-        "required": ["env", "switchKey", "value"],
+        "required": [
+          "env",
+          "switchKey",
+          "value"
+        ],
         "additionalProperties": false,
         "description": "Body for `PUT /api/admin/killswitches/{id}/switch`. Sets or updates one switch entry on one env."
       },
@@ -5666,7 +6621,11 @@
           },
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           },
           "switchKey": {
@@ -5679,7 +6638,12 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "env", "switchKey", "value"],
+        "required": [
+          "id",
+          "env",
+          "switchKey",
+          "value"
+        ],
         "additionalProperties": false
       },
       "UnsetKillswitchSwitchRequest": {
@@ -5687,7 +6651,11 @@
         "properties": {
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment."
           },
           "switchKey": {
@@ -5697,7 +6665,10 @@
             "description": "Switch key to remove."
           }
         },
-        "required": ["env", "switchKey"],
+        "required": [
+          "env",
+          "switchKey"
+        ],
         "additionalProperties": false,
         "description": "Body for `DELETE /api/admin/killswitches/{id}/switch`. Removes one switch entry from one env."
       },
@@ -5709,7 +6680,11 @@
           },
           "env": {
             "type": "string",
-            "enum": ["dev", "staging", "prod"],
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "description": "Target environment. One of the project's configured envs (`dev`, `stage`, `prod`)."
           },
           "switchKey": {
@@ -5723,7 +6698,12 @@
             "description": "`true` if the entry existed and was removed, `false` if no-op."
           }
         },
-        "required": ["id", "env", "switchKey", "removed"],
+        "required": [
+          "id",
+          "env",
+          "switchKey",
+          "removed"
+        ],
         "additionalProperties": false
       },
       "ListUniversesResponse": {
@@ -5740,8 +6720,9 @@
                 },
                 "name": {
                   "type": "string",
-                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-                  "description": "Stable universe key referenced by experiments via `universe: '<name>'`. Lowercase letters, digits, `_` or `-`, max 64 chars. Immutable after create."
+                  "maxLength": 128,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+                  "description": "Stable universe key. Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create."
                 },
                 "unitType": {
                   "type": "string",
@@ -5771,7 +6752,13 @@
                   "description": "ISO-8601 timestamp of creation."
                 }
               },
-              "required": ["id", "name", "unitType", "holdoutRange", "createdAt"],
+              "required": [
+                "id",
+                "name",
+                "unitType",
+                "holdoutRange",
+                "createdAt"
+              ],
               "additionalProperties": false
             }
           },
@@ -5786,7 +6773,10 @@
             ]
           }
         },
-        "required": ["data", "next_cursor"],
+        "required": [
+          "data",
+          "next_cursor"
+        ],
         "additionalProperties": false
       },
       "CreateUniverseRequest": {
@@ -5794,8 +6784,22 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable universe key referenced by experiments via `universe: '<name>'`. Lowercase letters, digits, `_` or `-`, max 64 chars. Immutable after create."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable universe key. Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create."
+          },
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "unit_type": {
             "default": "user_id",
@@ -5827,7 +6831,11 @@
             "description": "Inclusive `[lo, hi]` bucket range (0–9999) reserved as the **holdout** — callers hashed into this slice are excluded from every experiment in the universe. `null` disables the holdout. Pro plan or higher required."
           }
         },
-        "required": ["name", "unit_type", "holdout_range"],
+        "required": [
+          "name",
+          "unit_type",
+          "holdout_range"
+        ],
         "additionalProperties": false,
         "description": "Body for `POST /api/admin/universes`. Only `name` is required."
       },
@@ -5840,16 +6848,33 @@
           },
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
-            "description": "Stable universe key referenced by experiments via `universe: '<name>'`. Lowercase letters, digits, `_` or `-`, max 64 chars. Immutable after create."
+            "maxLength": 128,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+            "description": "Stable universe key. Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create."
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false
       },
       "UpdateUniverseRequest": {
         "type": "object",
         "properties": {
+          "folder": {
+            "description": "Optional folder name used to group items in the dashboard. Part of the SDK lookup key: an item in folder `checkout` named `new-cart` is referenced as `checkout/new-cart` from the SDK.",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "holdout_range": {
             "anyOf": [
               {
@@ -5885,7 +6910,9 @@
             "description": "Universe id that was updated."
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false
       },
       "DeleteUniverseResponse": {
@@ -5896,7 +6923,9 @@
             "const": true
           }
         },
-        "required": ["ok"],
+        "required": [
+          "ok"
+        ],
         "additionalProperties": false
       }
     },

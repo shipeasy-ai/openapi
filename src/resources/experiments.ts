@@ -80,6 +80,8 @@ export interface ExperimentsClient {
   start(id: string): Promise<Experiment>;
   stop(id: string): Promise<Experiment>;
   archive(id: string): Promise<Experiment>;
+  /** Restore a soft-deleted (archived) experiment back to `draft`. */
+  restore(id: string): Promise<Experiment>;
   setMetrics(id: string, input: ExperimentMetricsInput): Promise<unknown>;
   results(id: string): Promise<ExperimentResult[]>;
   timeseries(id: string, metric?: string): Promise<ExperimentTimeseriesPoint[]>;
@@ -95,15 +97,25 @@ export function experimentsClient(t: Transport): ExperimentsClient {
     if (opts.cursor) query.cursor = opts.cursor;
     return t.request<Page<Experiment>>("GET", BASE, undefined, query);
   }
-  async function listAll(): Promise<Experiment[]> {
+  // Paginate every experiment matching `status` (undefined = the default
+  // non-archived list). The list endpoint excludes archived rows unless
+  // `status=archived` is passed, so `resolve` needs this to find a
+  // soft-deleted experiment by name (e.g. to restore it).
+  async function listAllWith(status?: string): Promise<Experiment[]> {
     const out: Experiment[] = [];
     let cursor: string | undefined;
     do {
-      const page = await list({ limit: 500, cursor });
+      const query: Record<string, string> = { limit: "500" };
+      if (cursor) query.cursor = cursor;
+      if (status) query.status = status;
+      const page = await t.request<Page<Experiment>>("GET", BASE, undefined, query);
       out.push(...page.data);
       cursor = page.next_cursor ?? undefined;
     } while (cursor);
     return out;
+  }
+  async function listAll(): Promise<Experiment[]> {
+    return listAllWith();
   }
   async function resolve(idOrName: string) {
     try {
@@ -111,8 +123,11 @@ export function experimentsClient(t: Transport): ExperimentsClient {
     } catch (err) {
       if (!(err instanceof ApiError) || err.status !== 404) throw err;
     }
-    const all = await listAll();
-    const found = all.find((e) => e.name === idOrName);
+    // Active set first, then the archive — so a soft-deleted experiment still
+    // resolves by name (restore depends on this).
+    const found =
+      (await listAllWith()).find((e) => e.name === idOrName) ??
+      (await listAllWith("archived")).find((e) => e.name === idOrName);
     if (!found) throw new ApiError(`Experiment '${idOrName}' not found`, 404);
     return found;
   }
@@ -137,6 +152,7 @@ export function experimentsClient(t: Transport): ExperimentsClient {
     start: (id) => setStatus(id, "running"),
     stop: (id) => setStatus(id, "stopped"),
     archive: (id) => setStatus(id, "archived"),
+    restore: (id) => setStatus(id, "draft"),
     setMetrics: (id, input) =>
       t.request("POST", `${BASE}/${id}/metrics`, experimentMetricsUpdateSchema.parse(input)),
     results: (id) => t.request<ExperimentResult[]>("GET", `${BASE}/${id}/results`),
@@ -187,7 +203,7 @@ export const experimentsResource = {
       "",
       "**Identity.** Stable `name` (a-z, 0-9, `_`/`-`, max 64 chars). Immutable after create.",
       "",
-      "**Lifecycle.** `draft → running → stopped → archived`. Transition via `POST /{id}/status`. Restarting an archived experiment is not allowed.",
+      "**Lifecycle.** `draft → running → stopped → archived`. Transition via `POST /{id}/status`. An archived experiment that never started can be restored with `archived → draft`; restarting an archived experiment directly is not allowed.",
       "",
       "**Allocation.** `allocation_pct` (basis points, 0–10000) is the share of the targeted audience enrolled; `groups[].weight` (must sum to 10000) splits the enrolled audience. `targeting_gate` narrows the eligible audience before allocation.",
       "",
@@ -206,6 +222,7 @@ export const experimentsResource = {
     { name: "start", description: "Transition draft experiment to running" },
     { name: "stop", description: "Stop a running experiment" },
     { name: "archive", description: "Archive a stopped experiment" },
+    { name: "restore", description: "Restore an archived (never-started) experiment to draft" },
     { name: "reanalyze", description: "Re-run analysis pass for the experiment" },
   ] as const,
   endpoints: [
@@ -393,8 +410,9 @@ export const experimentsResource = {
         "- `running → stopped` — halts allocation. Existing exposures stay in the dataset.",
         "- `stopped → archived` — soft-delete.",
         "- `draft → archived` — discard an unstarted experiment.",
+        "- `archived → draft` — restore a soft-deleted experiment so it can be re-completed and started. Allowed only if it never started; one that already ran must be cloned instead.",
         "",
-        "Restarting an `archived` experiment is not allowed; clone instead. Returns `409` on illegal transitions and `429` if the plan's `experiments_running` limit is exceeded on `→ running`.",
+        "Restarting an `archived` experiment directly is not allowed — restore it to `draft` first. Returns `409` on illegal transitions and `429` if the plan's `experiments_running` limit is exceeded on `→ running`.",
       ].join("\n"),
       pathParams: { id: "Stable opaque experiment id." },
       request: experimentStatusUpdateSchema,
@@ -417,6 +435,12 @@ export const experimentsResource = {
             description:
               "Soft-deletes the experiment. List endpoints exclude archived rows by default.",
             value: { status: "archived" },
+          },
+          restore: {
+            summary: "Restore — archived → draft",
+            description:
+              "Un-deletes a soft-deleted experiment so it can be re-completed and started. Allowed only if it never ran.",
+            value: { status: "draft" },
           },
         },
         response: { id: "exp_01j7wb12c3d4e5f6g7h8j9k0l1", status: "running" },
