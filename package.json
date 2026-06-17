@@ -1,6 +1,6 @@
 {
   "name": "@shipeasy/openapi",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Shipeasy admin OpenAPI spec + typed client. Single source of truth for endpoint paths, request/response shapes, and the resource registry consumed by @shipeasy/cli and @shipeasy/mcp.",
   "type": "module",
   "main": "./dist/index.js",

@@ -50,13 +50,29 @@ export const gateNameSchema = z
     "Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create — rename = delete + recreate.",
   );
 
+export const rampSchema = z
+  .object({
+    from: z
+      .number()
+      .int()
+      .min(0)
+      .max(10000)
+      .describe("Start of the ramp in basis points (0–10000)."),
+    to: z.number().int().min(0).max(10000).describe("End of the ramp in basis points (0–10000)."),
+    startAt: z.number().int().nonnegative().describe("Ramp start, epoch milliseconds (UTC)."),
+    durationMs: z.number().int().positive().describe("Ramp length in milliseconds."),
+  })
+  .describe(
+    "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present.",
+  );
+
 const stackedConditionSchema = z
   .object({
     id: z
       .string()
       .min(1)
       .describe(
-        "Client-supplied stable id for the stack entry (used for React keys, audit diffs).",
+        "Client-supplied stable id for the stack entry (used for React keys, audit diffs, and as the default per-condition rollout salt).",
       ),
     type: z
       .literal("condition")
@@ -77,13 +93,31 @@ const stackedConditionSchema = z
       .array(gateRuleSchema)
       .default([])
       .describe("Predicates evaluated under `pass`. Empty array = match nothing."),
+    rolloutPct: z
+      .number()
+      .int()
+      .min(0)
+      .max(10000)
+      .optional()
+      .describe(
+        "Per-condition rollout in basis points. After the rules match, the caller is bucketed at this %; in-bucket → gate `true`, otherwise fall through to the next entry. Absent ⇒ 10000 (100%, every matching caller passes).",
+      ),
+    bucketBy: z
+      .string()
+      .optional()
+      .describe("Attribute used to hash the caller into the per-condition bucket. Default `userID`."),
+    salt: z
+      .string()
+      .optional()
+      .describe("Per-condition hash salt. Defaults to the entry `id`, then the gate salt."),
+    ramp: rampSchema.optional(),
     locked: z
       .boolean()
       .optional()
       .describe("If `true`, dashboard hides edit controls (e.g. the trailing public-floor entry)."),
   })
   .describe(
-    "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller.",
+    "Rule-based sub-gate. When the rules match and the caller falls in the per-condition rollout bucket, evaluation short-circuits and the gate returns `true`; otherwise it falls through to the next entry.",
   );
 
 const stackedRolloutSchema = z
@@ -112,10 +146,11 @@ const stackedRolloutSchema = z
       .describe(
         "Per-entry hash salt. Defaults to the gate's salt. Set explicitly to keep two rollouts independent or correlated across gates.",
       ),
+    ramp: rampSchema.optional(),
     locked: z.boolean().optional().describe("If `true`, dashboard hides edit controls."),
   })
   .describe(
-    "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers.",
+    "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers (or the ramp's effective % when `ramp` is set).",
   );
 
 export const stackedGateEntrySchema = z
