@@ -25,14 +25,16 @@ export const gateRuleSchema = z
         "semver_gte",
         "semver_lt",
         "semver_lte",
+        "gate_pass",
+        "exp_in",
       ])
       .describe(
-        "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string).",
+        "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant).",
       ),
     value: z
       .unknown()
       .describe(
-        "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`.",
+        "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`.",
       ),
   })
   .describe(
