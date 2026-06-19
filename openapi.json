@@ -3362,12 +3362,14 @@
                           "semver_gt",
                           "semver_gte",
                           "semver_lt",
-                          "semver_lte"
+                          "semver_lte",
+                          "gate_pass",
+                          "exp_in"
                         ],
-                        "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                        "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant)."
                       },
                       "value": {
-                        "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
+                        "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`."
                       }
                     },
                     "required": [
@@ -3447,7 +3449,7 @@
                               "id": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "Client-supplied stable id for the stack entry (used for React keys, audit diffs)."
+                                "description": "Client-supplied stable id for the stack entry (used for React keys, audit diffs, and as the default per-condition rollout salt)."
                               },
                               "type": {
                                 "type": "string",
@@ -3505,12 +3507,14 @@
                                         "semver_gt",
                                         "semver_gte",
                                         "semver_lt",
-                                        "semver_lte"
+                                        "semver_lte",
+                                        "gate_pass",
+                                        "exp_in"
                                       ],
-                                      "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                                      "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant)."
                                     },
                                     "value": {
-                                      "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
+                                      "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`."
                                     }
                                   },
                                   "required": [
@@ -3521,6 +3525,57 @@
                                   "additionalProperties": false,
                                   "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                                 }
+                              },
+                              "rolloutPct": {
+                                "description": "Per-condition rollout in basis points. After the rules match, the caller is bucketed at this %; in-bucket → gate `true`, otherwise fall through to the next entry. Absent ⇒ 10000 (100%, every matching caller passes).",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 10000
+                              },
+                              "bucketBy": {
+                                "description": "Attribute used to hash the caller into the per-condition bucket. Default `userID`.",
+                                "type": "string"
+                              },
+                              "salt": {
+                                "description": "Per-condition hash salt. Defaults to the entry `id`, then the gate salt.",
+                                "type": "string"
+                              },
+                              "ramp": {
+                                "type": "object",
+                                "properties": {
+                                  "from": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10000,
+                                    "description": "Start of the ramp in basis points (0–10000)."
+                                  },
+                                  "to": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10000,
+                                    "description": "End of the ramp in basis points (0–10000)."
+                                  },
+                                  "startAt": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991,
+                                    "description": "Ramp start, epoch milliseconds (UTC)."
+                                  },
+                                  "durationMs": {
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991,
+                                    "description": "Ramp length in milliseconds."
+                                  }
+                                },
+                                "required": [
+                                  "from",
+                                  "to",
+                                  "startAt",
+                                  "durationMs"
+                                ],
+                                "additionalProperties": false,
+                                "description": "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present."
                               },
                               "locked": {
                                 "description": "If `true`, dashboard hides edit controls (e.g. the trailing public-floor entry).",
@@ -3533,7 +3588,7 @@
                               "rules"
                             ],
                             "additionalProperties": false,
-                            "description": "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller."
+                            "description": "Rule-based sub-gate. When the rules match and the caller falls in the per-condition rollout bucket, evaluation short-circuits and the gate returns `true`; otherwise it falls through to the next entry."
                           },
                           {
                             "type": "object",
@@ -3577,6 +3632,43 @@
                                 "description": "Per-entry hash salt. Defaults to the gate's salt. Set explicitly to keep two rollouts independent or correlated across gates.",
                                 "type": "string"
                               },
+                              "ramp": {
+                                "type": "object",
+                                "properties": {
+                                  "from": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10000,
+                                    "description": "Start of the ramp in basis points (0–10000)."
+                                  },
+                                  "to": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10000,
+                                    "description": "End of the ramp in basis points (0–10000)."
+                                  },
+                                  "startAt": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991,
+                                    "description": "Ramp start, epoch milliseconds (UTC)."
+                                  },
+                                  "durationMs": {
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991,
+                                    "description": "Ramp length in milliseconds."
+                                  }
+                                },
+                                "required": [
+                                  "from",
+                                  "to",
+                                  "startAt",
+                                  "durationMs"
+                                ],
+                                "additionalProperties": false,
+                                "description": "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present."
+                              },
                               "locked": {
                                 "description": "If `true`, dashboard hides edit controls.",
                                 "type": "boolean"
@@ -3588,7 +3680,7 @@
                               "rolloutPct"
                             ],
                             "additionalProperties": false,
-                            "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers."
+                            "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers (or the ramp's effective % when `ramp` is set)."
                           }
                         ],
                         "description": "One entry in the ordered gatekeeper stack. Evaluated top-to-bottom; first matching entry decides. Mix `condition` and `rollout` entries to express `internal-only` + `1% beta` + `50% public` in a single gate."
@@ -3686,12 +3778,14 @@
                     "semver_gt",
                     "semver_gte",
                     "semver_lt",
-                    "semver_lte"
+                    "semver_lte",
+                    "gate_pass",
+                    "exp_in"
                   ],
-                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant)."
                 },
                 "value": {
-                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
+                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`."
                 }
               },
               "required": [
@@ -3722,7 +3816,7 @@
                         "id": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "Client-supplied stable id for the stack entry (used for React keys, audit diffs)."
+                          "description": "Client-supplied stable id for the stack entry (used for React keys, audit diffs, and as the default per-condition rollout salt)."
                         },
                         "type": {
                           "type": "string",
@@ -3780,12 +3874,14 @@
                                   "semver_gt",
                                   "semver_gte",
                                   "semver_lt",
-                                  "semver_lte"
+                                  "semver_lte",
+                                  "gate_pass",
+                                  "exp_in"
                                 ],
-                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant)."
                               },
                               "value": {
-                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
+                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`."
                               }
                             },
                             "required": [
@@ -3796,6 +3892,57 @@
                             "additionalProperties": false,
                             "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                           }
+                        },
+                        "rolloutPct": {
+                          "description": "Per-condition rollout in basis points. After the rules match, the caller is bucketed at this %; in-bucket → gate `true`, otherwise fall through to the next entry. Absent ⇒ 10000 (100%, every matching caller passes).",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        },
+                        "bucketBy": {
+                          "description": "Attribute used to hash the caller into the per-condition bucket. Default `userID`.",
+                          "type": "string"
+                        },
+                        "salt": {
+                          "description": "Per-condition hash salt. Defaults to the entry `id`, then the gate salt.",
+                          "type": "string"
+                        },
+                        "ramp": {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "Start of the ramp in basis points (0–10000)."
+                            },
+                            "to": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "End of the ramp in basis points (0–10000)."
+                            },
+                            "startAt": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp start, epoch milliseconds (UTC)."
+                            },
+                            "durationMs": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp length in milliseconds."
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to",
+                            "startAt",
+                            "durationMs"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present."
                         },
                         "locked": {
                           "description": "If `true`, dashboard hides edit controls (e.g. the trailing public-floor entry).",
@@ -3808,7 +3955,7 @@
                         "rules"
                       ],
                       "additionalProperties": false,
-                      "description": "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller."
+                      "description": "Rule-based sub-gate. When the rules match and the caller falls in the per-condition rollout bucket, evaluation short-circuits and the gate returns `true`; otherwise it falls through to the next entry."
                     },
                     {
                       "type": "object",
@@ -3852,6 +3999,43 @@
                           "description": "Per-entry hash salt. Defaults to the gate's salt. Set explicitly to keep two rollouts independent or correlated across gates.",
                           "type": "string"
                         },
+                        "ramp": {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "Start of the ramp in basis points (0–10000)."
+                            },
+                            "to": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "End of the ramp in basis points (0–10000)."
+                            },
+                            "startAt": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp start, epoch milliseconds (UTC)."
+                            },
+                            "durationMs": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp length in milliseconds."
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to",
+                            "startAt",
+                            "durationMs"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present."
+                        },
                         "locked": {
                           "description": "If `true`, dashboard hides edit controls.",
                           "type": "boolean"
@@ -3863,7 +4047,7 @@
                         "rolloutPct"
                       ],
                       "additionalProperties": false,
-                      "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers."
+                      "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers (or the ramp's effective % when `ramp` is set)."
                     }
                   ],
                   "description": "One entry in the ordered gatekeeper stack. Evaluated top-to-bottom; first matching entry decides. Mix `condition` and `rollout` entries to express `internal-only` + `1% beta` + `50% public` in a single gate."
@@ -3979,12 +4163,14 @@
                     "semver_gt",
                     "semver_gte",
                     "semver_lt",
-                    "semver_lte"
+                    "semver_lte",
+                    "gate_pass",
+                    "exp_in"
                   ],
-                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                  "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant)."
                 },
                 "value": {
-                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
+                  "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`."
                 }
               },
               "required": [
@@ -4013,7 +4199,7 @@
                         "id": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "Client-supplied stable id for the stack entry (used for React keys, audit diffs)."
+                          "description": "Client-supplied stable id for the stack entry (used for React keys, audit diffs, and as the default per-condition rollout salt)."
                         },
                         "type": {
                           "type": "string",
@@ -4071,12 +4257,14 @@
                                   "semver_gt",
                                   "semver_gte",
                                   "semver_lt",
-                                  "semver_lte"
+                                  "semver_lte",
+                                  "gate_pass",
+                                  "exp_in"
                                 ],
-                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string)."
+                                "description": "Comparison operator. Equality: `eq`/`neq`. Set membership: `in`/`not_in` (value is an array). Numeric order: `gt`/`gte`/`lt`/`lte`. Semver order: `semver_gt`/`semver_gte`/`semver_lt`/`semver_lte` (value is a dotted version like `4.2.0`). String: `contains` (substring), `regex` (JS-flavour pattern, value is the pattern string). Cross-resource references (evaluated only on the worker hot path, where both KV blobs load): `gate_pass` (`value` is another gate's name — true when that gate passes for the same caller); `exp_in` (`attr` is a running experiment's name, `value` is a group name, `\"$holdout\"`, or `\"$any\"` — true when the caller is in that variant / the universe holdout / any variant)."
                               },
                               "value": {
-                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`."
+                                "description": "Operand. Shape depends on `op`: scalar for `eq/neq/gt/gte/lt/lte/contains/semver_*`; array of scalars for `in/not_in`; string pattern for `regex`; referenced gate name for `gate_pass`; group name / `\"$holdout\"` / `\"$any\"` for `exp_in`."
                               }
                             },
                             "required": [
@@ -4087,6 +4275,57 @@
                             "additionalProperties": false,
                             "description": "Single targeting predicate. A gate's `rules` array is evaluated with AND semantics; use the gatekeeper `stack` for OR / fall-through logic."
                           }
+                        },
+                        "rolloutPct": {
+                          "description": "Per-condition rollout in basis points. After the rules match, the caller is bucketed at this %; in-bucket → gate `true`, otherwise fall through to the next entry. Absent ⇒ 10000 (100%, every matching caller passes).",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        },
+                        "bucketBy": {
+                          "description": "Attribute used to hash the caller into the per-condition bucket. Default `userID`.",
+                          "type": "string"
+                        },
+                        "salt": {
+                          "description": "Per-condition hash salt. Defaults to the entry `id`, then the gate salt.",
+                          "type": "string"
+                        },
+                        "ramp": {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "Start of the ramp in basis points (0–10000)."
+                            },
+                            "to": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "End of the ramp in basis points (0–10000)."
+                            },
+                            "startAt": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp start, epoch milliseconds (UTC)."
+                            },
+                            "durationMs": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp length in milliseconds."
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to",
+                            "startAt",
+                            "durationMs"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present."
                         },
                         "locked": {
                           "description": "If `true`, dashboard hides edit controls (e.g. the trailing public-floor entry).",
@@ -4099,7 +4338,7 @@
                         "rules"
                       ],
                       "additionalProperties": false,
-                      "description": "Rule-based sub-gate. When matched, evaluation short-circuits and the gate returns `true` for the current caller."
+                      "description": "Rule-based sub-gate. When the rules match and the caller falls in the per-condition rollout bucket, evaluation short-circuits and the gate returns `true`; otherwise it falls through to the next entry."
                     },
                     {
                       "type": "object",
@@ -4143,6 +4382,43 @@
                           "description": "Per-entry hash salt. Defaults to the gate's salt. Set explicitly to keep two rollouts independent or correlated across gates.",
                           "type": "string"
                         },
+                        "ramp": {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "Start of the ramp in basis points (0–10000)."
+                            },
+                            "to": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000,
+                              "description": "End of the ramp in basis points (0–10000)."
+                            },
+                            "startAt": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp start, epoch milliseconds (UTC)."
+                            },
+                            "durationMs": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Ramp length in milliseconds."
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to",
+                            "startAt",
+                            "durationMs"
+                          ],
+                          "additionalProperties": false,
+                          "description": "Linear rollout ramp. The effective rollout % interpolates `from`→`to` over `[startAt, startAt+durationMs]`, clamped outside that window, evaluated against the wall-clock at eval time. Overrides the entry's static `rolloutPct` while present."
+                        },
                         "locked": {
                           "description": "If `true`, dashboard hides edit controls.",
                           "type": "boolean"
@@ -4154,7 +4430,7 @@
                         "rolloutPct"
                       ],
                       "additionalProperties": false,
-                      "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers."
+                      "description": "Percentage-rollout sub-gate. Hashes `bucketBy` (default `userID`) with `salt` and returns `true` for `rolloutPct/10000` fraction of callers (or the ramp's effective % when `ramp` is set)."
                     }
                   ],
                   "description": "One entry in the ordered gatekeeper stack. Evaluated top-to-bottom; first matching entry decides. Mix `condition` and `rollout` entries to express `internal-only` + `1% beta` + `50% public` in a single gate."
@@ -4333,12 +4609,10 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "enum": [
-                        "user_id",
-                        "session_id",
-                        "device_id"
-                      ],
-                      "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+                      "description": "User-attribute name used as the bucketing key — e.g. `user_id` (default), `session_id`, `device_id`, or a custom attribute like `company_id` to keep a whole org on one variant. Defaults to `user_id` when omitted."
                     },
                     {
                       "type": "null"
@@ -4583,12 +4857,10 @@
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "user_id",
-                  "session_id",
-                  "device_id"
-                ],
-                "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+                "description": "User-attribute name used as the bucketing key — e.g. `user_id` (default), `session_id`, `device_id`, or a custom attribute like `company_id` to keep a whole org on one variant. Defaults to `user_id` when omitted."
               },
               {
                 "type": "null"
@@ -4827,12 +5099,10 @@
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "user_id",
-                  "session_id",
-                  "device_id"
-                ],
-                "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+                "description": "User-attribute name used as the bucketing key — e.g. `user_id` (default), `session_id`, `device_id`, or a custom attribute like `company_id` to keep a whole org on one variant. Defaults to `user_id` when omitted."
               },
               {
                 "type": "null"
@@ -5114,12 +5384,10 @@
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "user_id",
-                  "session_id",
-                  "device_id"
-                ],
-                "description": "Identifier used as the bucketing key. `user_id` is sticky across sessions."
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+                "description": "User-attribute name used as the bucketing key — e.g. `user_id` (default), `session_id`, `device_id`, or a custom attribute like `company_id` to keep a whole org on one variant. Defaults to `user_id` when omitted."
               },
               {
                 "type": "null"

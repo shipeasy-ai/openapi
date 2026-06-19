@@ -57,8 +57,18 @@ export const paramSchemaSchema = z
   );
 
 export const bucketBySchema = z
-  .enum(["user_id", "session_id", "device_id"])
-  .describe("Identifier used as the bucketing key. `user_id` is sticky across sessions.");
+  .string()
+  .min(1)
+  .max(128)
+  .regex(
+    /^[a-zA-Z_][a-zA-Z0-9_]*$/,
+    "Must be a user-attribute name (letters, digits, underscore; not starting with a digit).",
+  )
+  .describe(
+    "User-attribute name used as the bucketing key — e.g. `user_id` (default), " +
+      "`session_id`, `device_id`, or a custom attribute like `company_id` to keep " +
+      "a whole org on one variant. Defaults to `user_id` when omitted.",
+  );
 
 export const experimentCreateSchema = z
   .object({
