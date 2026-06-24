@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   alertRuleCreateSchema,
   alertRuleUpdateSchema,
+  type NotificationTarget,
 } from "../schemas/alert-rules.js";
 import type { Transport } from "../transport.js";
 import { ApiError } from "../transport.js";
@@ -29,6 +30,8 @@ export interface AlertRule {
   windowHours: number;
   severity: "danger" | "warn" | "info";
   enabled: boolean;
+  /** Delivery target for this rule's alert; null = use project default. */
+  notify: NotificationTarget | null;
   createdAt: string;
   updatedAt: string;
 }

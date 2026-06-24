@@ -3,6 +3,30 @@ import { z } from "zod";
 export const ALERT_COMPARATORS = ["gt", "gte", "lt", "lte"] as const;
 export const ALERT_SEVERITIES = ["danger", "warn", "info"] as const;
 
+// Where a rule's alert is delivered. Each field is optional and nullable; a
+// null/absent field falls back to the project default (notification settings)
+// then the connector channel. `slackChannel` requires a connected Slack
+// connector — pick a real channel (its id + name) via the channels endpoint;
+// never invent one. `email` overrides the default recipient for this rule.
+export const notificationTargetSchema = z
+  .object({
+    slackChannel: z
+      .object({
+        id: z.string().min(1).describe("Slack channel id (e.g. C0123ABCD)."),
+        name: z.string().min(1).describe("Slack channel name (without the leading #)."),
+      })
+      .nullish()
+      .describe("Slack channel to post this rule's alert to. Requires a Slack connector."),
+    email: z
+      .string()
+      .email()
+      .nullish()
+      .describe("Email address to notify for this rule (overrides the default recipient)."),
+  })
+  .strict();
+
+export type NotificationTarget = z.infer<typeof notificationTargetSchema>;
+
 export const alertRuleCreateSchema = z
   .object({
     name: z
@@ -24,6 +48,9 @@ export const alertRuleCreateSchema = z
       .describe("Lookback window (hours) the metric is aggregated over. 1–720."),
     severity: z.enum(ALERT_SEVERITIES).default("warn").describe("Severity of the raised alert."),
     enabled: z.boolean().default(true).describe("Whether the rule is evaluated by the cron."),
+    notify: notificationTargetSchema
+      .nullish()
+      .describe("Where to deliver this rule's alert (Slack channel and/or email target)."),
   })
   .strict();
 
@@ -46,6 +73,7 @@ export const alertRuleUpdateSchema = z
     windowHours: z.number().int().min(1).max(720),
     severity: z.enum(ALERT_SEVERITIES),
     enabled: z.boolean(),
+    notify: notificationTargetSchema.nullish(),
   })
   .partial()
   .strict();
