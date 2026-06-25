@@ -1,6 +1,6 @@
 import type { AdminClient } from "../resources/index.js";
 import { coerceInput } from "./coerce.js";
-import type { McpTool, Operation } from "./types.js";
+import { opMcpName, type McpTool, type Operation } from "./types.js";
 
 /** JSON-Schema `type` keyword for each param type. `json` is surfaced as a string the model stringifies. */
 function jsonType(t: Operation["params"][number]["type"]): string {
@@ -27,7 +27,7 @@ export function operationsToMcpTools(ops: Operation[]): McpTool[] {
       if (p.required) required.push(p.name);
     }
     return {
-      name: op.mcpName,
+      name: opMcpName(op),
       description: op.description,
       inputSchema: { type: "object", ...(required.length ? { required } : {}), properties },
     };
@@ -49,7 +49,7 @@ export function operationsToDispatch(
   for (const op of ops) {
     // `async` so a synchronous coercion error (bad JSON, missing required) is
     // surfaced as a rejected promise the caller can await/catch uniformly.
-    map[op.mcpName] = async (client, args) => op.run(client, coerceInput(op, args ?? {}));
+    map[opMcpName(op)] = async (client, args) => op.run(client, coerceInput(op, args ?? {}));
   }
   return map;
 }

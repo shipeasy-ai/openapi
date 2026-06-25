@@ -29,10 +29,8 @@ const num = (i: OpInput, k: string): number | undefined =>
 
 export const gateOperations: Operation[] = [
   {
-    id: "gates.list",
     resource: "gates",
-    cliName: "list",
-    mcpName: "exp_list_gates",
+    name: "list",
     mutates: false,
     summary: "List all feature gates",
     description:
@@ -42,10 +40,8 @@ export const gateOperations: Operation[] = [
     run: (client: AdminClient) => client.gates.listAll(),
   },
   {
-    id: "gates.create",
     resource: "gates",
-    cliName: "create",
-    mcpName: "exp_create_gate",
+    name: "create",
     mutates: true,
     summary: "Create a feature gate",
     description:
@@ -77,10 +73,8 @@ export const gateOperations: Operation[] = [
       }),
   },
   {
-    id: "gates.update",
     resource: "gates",
-    cliName: "update",
-    mcpName: "exp_update_gate",
+    name: "update",
     mutates: true,
     summary: "Update a gate's rollout, rules, stack, or enabled flag",
     description:
@@ -106,10 +100,8 @@ export const gateOperations: Operation[] = [
     },
   },
   {
-    id: "gates.enable",
     resource: "gates",
-    cliName: "enable",
-    mcpName: "exp_enable_gate",
+    name: "enable",
     mutates: true,
     summary: "Enable a feature gate",
     description: "Set `enabled: true`, preserving the current rollout %.",
@@ -121,10 +113,8 @@ export const gateOperations: Operation[] = [
     },
   },
   {
-    id: "gates.disable",
     resource: "gates",
-    cliName: "disable",
-    mcpName: "exp_disable_gate",
+    name: "disable",
     mutates: true,
     summary: "Disable a feature gate (kill switch)",
     description:
@@ -137,10 +127,8 @@ export const gateOperations: Operation[] = [
     },
   },
   {
-    id: "gates.rollout",
     resource: "gates",
-    cliName: "rollout",
-    mcpName: "exp_set_gate_rollout",
+    name: "rollout",
     mutates: true,
     summary: "Set rollout percentage (0–100)",
     description: "Resolve the gate by name and set its rollout percentage (0–100).",
@@ -155,10 +143,8 @@ export const gateOperations: Operation[] = [
     run: (client: AdminClient, i: OpInput) => client.gates.setRollout(i.name as string, num(i, "pct")!),
   },
   {
-    id: "gates.delete",
     resource: "gates",
-    cliName: "delete",
-    mcpName: "exp_delete_gate",
+    name: "delete",
     mutates: true,
     summary: "Delete a feature gate",
     description: "Delete a feature gate by name. Refuses if a running experiment references it as a targeting gate.",

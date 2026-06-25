@@ -30,17 +30,18 @@ function mockClient() {
 describe("gate operations → MCP", () => {
   it("emits one tool per op with valid JSON-schema input", () => {
     const tools = operationsToMcpTools(gateOperations);
+    // MCP tool names mirror the CLI exactly: `gates create` → `gates_create`.
     expect(tools.map((t) => t.name)).toEqual([
-      "exp_list_gates",
-      "exp_create_gate",
-      "exp_update_gate",
-      "exp_enable_gate",
-      "exp_disable_gate",
-      "exp_set_gate_rollout",
-      "exp_delete_gate",
+      "gates_list",
+      "gates_create",
+      "gates_update",
+      "gates_enable",
+      "gates_disable",
+      "gates_rollout",
+      "gates_delete",
     ]);
 
-    const create = tools.find((t) => t.name === "exp_create_gate")!;
+    const create = tools.find((t) => t.name === "gates_create")!;
     expect(create.inputSchema.type).toBe("object");
     expect(create.inputSchema.required).toEqual(["name"]);
     // `json` params surface as strings (the LLM stringifies nested structures).
@@ -52,7 +53,7 @@ describe("gate operations → MCP", () => {
     const client = mockClient();
     const dispatch = operationsToDispatch(gateOperations);
 
-    await dispatch.exp_create_gate(client, {
+    await dispatch.gates_create(client, {
       name: "checkout_v2",
       rollout: 25,
       rules: '[{"attr":"plan","op":"eq","value":"pro"}]',
@@ -68,7 +69,7 @@ describe("gate operations → MCP", () => {
   it("update resolves by name then patches only supplied fields", async () => {
     const client = mockClient();
     const dispatch = operationsToDispatch(gateOperations);
-    await dispatch.exp_update_gate(client, { name: "checkout_v2", rollout: 50, enabled: false });
+    await dispatch.gates_update(client, { name: "checkout_v2", rollout: 50, enabled: false });
     expect(client.gates.resolve).toHaveBeenCalledWith("checkout_v2");
     expect(client.gates.update).toHaveBeenCalledWith("gat_123", {
       rollout_pct: 5000,
@@ -79,10 +80,10 @@ describe("gate operations → MCP", () => {
   it("rejects malformed JSON and missing required params", async () => {
     const client = mockClient();
     const dispatch = operationsToDispatch(gateOperations);
-    await expect(dispatch.exp_create_gate(client, { name: "x", rules: "not json" })).rejects.toThrow(
+    await expect(dispatch.gates_create(client, { name: "x", rules: "not json" })).rejects.toThrow(
       /valid JSON/,
     );
-    await expect(dispatch.exp_create_gate(client, {})).rejects.toThrow(/name is required/);
+    await expect(dispatch.gates_create(client, {})).rejects.toThrow(/name is required/);
   });
 });
 
@@ -170,7 +171,7 @@ describe("gate operations → docs", () => {
     expect(md).toContain("# Gates");
     expect(md).toContain("## `gates.create`");
     expect(md).toContain("| Param | Type | Required | Description |");
-    expect(md).toContain("exp_create_gate"); // MCP tool name cross-referenced
+    expect(md).toContain("gates_create"); // MCP tool name cross-referenced (mirrors CLI)
     expect(md).toContain("shipeasy gates create checkout-v2");
   });
 });

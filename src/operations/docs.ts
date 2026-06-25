@@ -1,4 +1,4 @@
-import type { Operation } from "./types.js";
+import { opCli, opId, opMcpName, type Operation } from "./types.js";
 
 /**
  * Render the registry to Markdown — the "documentation comes along for free"
@@ -12,11 +12,11 @@ export function renderOperationsMarkdown(ops: Operation[], opts: { title?: strin
   if (opts.title) lines.push(`# ${opts.title}`, "");
 
   for (const op of ops) {
-    lines.push(`## \`${op.id}\``, "");
+    lines.push(`## \`${opId(op)}\``, "");
     lines.push(op.summary, "");
     if (op.description && op.description !== op.summary) lines.push(op.description, "");
     lines.push(
-      `- **CLI:** \`shipeasy ${op.resource} ${op.cliName}\`  ·  **MCP tool:** \`${op.mcpName}\`  ·  ${op.mutates ? "write (needs project binding)" : "read"}`,
+      `- **CLI:** \`shipeasy ${opCli(op)}\`  ·  **MCP tool:** \`${opMcpName(op)}\`  ·  ${op.mutates ? "write (needs project binding)" : "read"}`,
       "",
     );
 

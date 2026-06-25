@@ -19,6 +19,7 @@ export type {
   CliContext,
   McpTool,
 } from "./types.js";
+export { opId, opCli, opMcpName } from "./types.js";
 
 export { coerceInput } from "./coerce.js";
 export { mountOperations } from "./cli-adapter.js";

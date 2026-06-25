@@ -42,14 +42,16 @@ export interface OpExample {
 export type OpInput = Record<string, unknown>;
 
 export interface Operation<O = unknown> {
-  /** Stable id, e.g. `gates.create`. Unique across the registry. */
-  id: string;
-  /** Resource family — `gates`, `experiments`, … Used to group CLI subcommands + docs. */
+  /** Resource family — `gates`, `experiments`, … Groups CLI subcommands + docs. */
   resource: string;
-  /** CLI subcommand name (mounted under the resource group), e.g. `create`. */
-  cliName: string;
-  /** MCP tool name, e.g. `exp_create_gate`. */
-  mcpName: string;
+  /**
+   * The verb, e.g. `create`. Authored ONCE — every surface name derives from
+   * `resource` + `name` so they can never drift:
+   *   id  = `gates.create`   (opId)
+   *   CLI = `gates create`   (resource group + this name)
+   *   MCP = `gates_create`   (opMcpName — `_` because MCP names can't have spaces)
+   */
+  name: string;
   /** True for writes — the CLI/MCP adapter enforces `.shipeasy` binding before running. */
   mutates: boolean;
   /** One-liner — CLI `.description()` and the docs heading. */
@@ -89,6 +91,18 @@ export interface CliContext {
   /** Terminal error handler (prints + exits). */
   onError: (e: unknown) => void;
 }
+
+/** Stable id, e.g. `gates.create`. */
+export const opId = (op: Pick<Operation, "resource" | "name">): string =>
+  `${op.resource}.${op.name}`;
+
+/** MCP tool name, e.g. `gates_create` — the CLI's `gates create` with `_` for the space. */
+export const opMcpName = (op: Pick<Operation, "resource" | "name">): string =>
+  `${op.resource}_${op.name}`;
+
+/** CLI invocation, e.g. `gates create` (resource group + verb). */
+export const opCli = (op: Pick<Operation, "resource" | "name">): string =>
+  `${op.resource} ${op.name}`;
 
 /** Plain MCP `Tool` shape — structurally compatible with `@modelcontextprotocol/sdk`'s `Tool`. */
 export interface McpTool {

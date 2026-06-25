@@ -77,6 +77,9 @@ export {
   operationsToMcpTools,
   operationsToDispatch,
   renderOperationsMarkdown,
+  opId,
+  opCli,
+  opMcpName,
 } from "./operations/index.js";
 export type {
   Operation,

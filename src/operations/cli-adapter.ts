@@ -1,12 +1,12 @@
 import { coerceInput } from "./coerce.js";
 import type { CliContext, CommandLike, Operation } from "./types.js";
 
-/** `gates.create` + params `[name(positional)]` → commander signature `create <name>`. */
+/** verb `create` + positional params → commander signature `create <name>`. */
 function commandSignature(op: Operation): string {
   const positionals = op.params
     .filter((p) => p.positional)
     .map((p) => (p.required === false ? `[${p.name}]` : `<${p.name}>`));
-  return [op.cliName, ...positionals].join(" ");
+  return [op.name, ...positionals].join(" ");
 }
 
 /**
