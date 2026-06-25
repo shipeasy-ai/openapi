@@ -26,6 +26,10 @@
       "types": "./dist/schemas/*.d.ts",
       "default": "./dist/schemas/*.js"
     },
+    "./operations": {
+      "types": "./dist/operations/index.d.ts",
+      "default": "./dist/operations/index.js"
+    },
     "./transport": {
       "types": "./dist/transport.d.ts",
       "default": "./dist/transport.js"

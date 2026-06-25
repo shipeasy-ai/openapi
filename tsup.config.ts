@@ -11,6 +11,8 @@ export default defineConfig({
     "src/resources/*.ts",
     "src/schemas/*.ts",
     "!src/schemas/*.test.ts",
+    "src/operations/*.ts",
+    "!src/operations/*.test.ts",
   ],
   format: ["esm"],
   dts: true,

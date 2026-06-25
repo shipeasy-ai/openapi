@@ -66,3 +66,25 @@ export type {
   AlertRuleCreateInput,
   AlertRuleUpdateInput,
 } from "./resources/alert-rules.js";
+
+// Operation registry — single source of truth that drives the CLI commands,
+// the MCP tools, and their docs. See ./operations/index.ts.
+export {
+  ALL_OPERATIONS,
+  gateOperations,
+  coerceInput,
+  mountOperations,
+  operationsToMcpTools,
+  operationsToDispatch,
+  renderOperationsMarkdown,
+} from "./operations/index.js";
+export type {
+  Operation,
+  OpInput,
+  OpExample,
+  Param,
+  ParamType,
+  CommandLike,
+  CliContext,
+  McpTool,
+} from "./operations/index.js";
