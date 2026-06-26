@@ -72,6 +72,10 @@ export type {
 export {
   ALL_OPERATIONS,
   gateOperations,
+  killswitchOperations,
+  configOperations,
+  experimentOperations,
+  universeOperations,
   coerceInput,
   mountOperations,
   operationsToMcpTools,

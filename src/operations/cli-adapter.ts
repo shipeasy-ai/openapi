@@ -1,6 +1,9 @@
 import { coerceInput } from "./coerce.js";
 import type { CliContext, CommandLike, Operation } from "./types.js";
 
+/** `unitType` → `unit-type` for the CLI flag (commander camelCases it back on read). */
+const toKebab = (s: string): string => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+
 /** verb `create` + positional params → commander signature `create <name>`. */
 function commandSignature(op: Operation): string {
   const positionals = op.params
@@ -24,9 +27,11 @@ export function mountOperations(group: CommandLike, ops: Operation[], ctx: CliCo
     const cmd = group.command(commandSignature(op)).description(op.summary);
 
     for (const p of flags) {
-      // boolean → bare `--flag`; everything else takes a value.
-      const decl = p.type === "boolean" ? `--${p.name}` : `--${p.name} <value>`;
-      cmd.option(decl, p.description);
+      // All param flags take a value — booleans included, so the CLI can pass
+      // `--enabled false` / `--value true` explicitly (a bare flag couldn't set
+      // false). camelCase param name → kebab flag; commander camelCases it back
+      // to exactly `p.name`, so `coerceInput` reads it off `opts` unchanged.
+      cmd.option(`--${toKebab(p.name)} <value>`, p.description);
     }
     cmd.option("--json", "Output as JSON");
     cmd.option("--project <id>", "Project ID override");

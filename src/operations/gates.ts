@@ -1,5 +1,6 @@
 import type { AdminClient } from "../resources/index.js";
 import type { Operation, OpInput } from "./types.js";
+import { num } from "./util.js";
 
 /**
  * Gate operations — the pilot proving one registry can drive the CLI, the MCP
@@ -23,9 +24,6 @@ const STACK_DESC =
   "Gatekeeper stack as a JSON array of ordered first-match-wins tiers (condition/rollout steps, " +
   "rolloutPct in basis points). Takes precedence over flat rules/rollout. Pass to express " +
   "internal ∪ beta ∪ public in one gate.";
-
-const num = (i: OpInput, k: string): number | undefined =>
-  i[k] === undefined ? undefined : (i[k] as number);
 
 export const gateOperations: Operation[] = [
   {
