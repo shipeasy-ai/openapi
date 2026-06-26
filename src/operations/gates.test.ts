@@ -38,7 +38,7 @@ describe("gate operations → MCP", () => {
       "release_flags_enable",
       "release_flags_disable",
       "release_flags_rollout",
-      "release_flags_delete",
+      "release_flags_archive",
     ]);
 
     const create = tools.find((t) => t.name === "release_flags_create")!;

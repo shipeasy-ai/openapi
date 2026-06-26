@@ -144,16 +144,18 @@ export const gateOperations: Operation[] = [
   },
   {
     group: ["release", "flags"],
-    name: "delete",
+    name: "archive",
     mutates: true,
-    summary: "Delete a feature gate",
-    description: "Delete a feature gate by name. Refuses if a running experiment references it as a targeting gate.",
+    summary: "Archive a feature gate",
+    description:
+      "Archive (soft-delete) a feature gate by name. Refuses if a running experiment references it as a targeting gate.",
     params: [{ name: "name", type: "string", description: "Gate name.", required: true, positional: true }],
-    examples: [{ run: "shipeasy release flags delete checkout-v2" }],
+    examples: [{ run: "shipeasy release flags archive checkout-v2" }],
     run: async (client: AdminClient, i: OpInput) => {
       const gate = await client.gates.resolve(i.name as string);
+      // Underlying admin endpoint is DELETE (a soft-delete); the user-facing verb is `archive`.
       await client.gates.delete(gate.id);
-      return { ok: true, deleted: i.name };
+      return { ok: true, archived: i.name };
     },
   },
 ];
