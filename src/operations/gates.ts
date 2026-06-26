@@ -29,18 +29,18 @@ const num = (i: OpInput, k: string): number | undefined =>
 
 export const gateOperations: Operation[] = [
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "list",
     mutates: false,
     summary: "List all feature gates",
     description:
       "Return every feature gate in the project (name, enabled, rollout %), ordered by most recently updated.",
     params: [],
-    examples: [{ run: "shipeasy gates list" }],
+    examples: [{ run: "shipeasy release flags list" }],
     run: (client: AdminClient) => client.gates.listAll(),
   },
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "create",
     mutates: true,
     summary: "Create a feature gate",
@@ -56,10 +56,10 @@ export const gateOperations: Operation[] = [
       { name: "stack", type: "json", description: STACK_DESC },
     ],
     examples: [
-      { note: "Off by default; flip it on later", run: "shipeasy gates create checkout-v2" },
+      { note: "Off by default; flip it on later", run: "shipeasy release flags create checkout-v2" },
       {
         note: "Roll out to 25% of pro-plan users",
-        run: 'shipeasy gates create new-ui --rollout 25 --rules \'[{"attr":"plan","op":"eq","value":"pro"}]\'',
+        run: 'shipeasy release flags create new-ui --rollout 25 --rules \'[{"attr":"plan","op":"eq","value":"pro"}]\'',
       },
     ],
     run: (client: AdminClient, i: OpInput) =>
@@ -73,7 +73,7 @@ export const gateOperations: Operation[] = [
       }),
   },
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "update",
     mutates: true,
     summary: "Update a gate's rollout, rules, stack, or enabled flag",
@@ -87,7 +87,7 @@ export const gateOperations: Operation[] = [
       { name: "stack", type: "json", description: STACK_DESC + " Pass null to revert to flat evaluation." },
       { name: "enabled", type: "boolean", description: "Master switch — false forces the gate off for every caller." },
     ],
-    examples: [{ note: "Ramp to 50%", run: "shipeasy gates update checkout-v2 --rollout 50" }],
+    examples: [{ note: "Ramp to 50%", run: "shipeasy release flags update checkout-v2 --rollout 50" }],
     run: async (client: AdminClient, i: OpInput) => {
       const gate = await client.gates.resolve(i.name as string);
       const patch: Record<string, unknown> = {};
@@ -100,34 +100,34 @@ export const gateOperations: Operation[] = [
     },
   },
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "enable",
     mutates: true,
     summary: "Enable a feature gate",
     description: "Set `enabled: true`, preserving the current rollout %.",
     params: [{ name: "name", type: "string", description: "Gate name.", required: true, positional: true }],
-    examples: [{ run: "shipeasy gates enable checkout-v2" }],
+    examples: [{ run: "shipeasy release flags enable checkout-v2" }],
     run: async (client: AdminClient, i: OpInput) => {
       const gate = await client.gates.resolve(i.name as string);
       return client.gates.enable(gate.id);
     },
   },
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "disable",
     mutates: true,
     summary: "Disable a feature gate (kill switch)",
     description:
       "Set `enabled: false` so the gate evaluates to `false` for every caller regardless of rules/rollout.",
     params: [{ name: "name", type: "string", description: "Gate name.", required: true, positional: true }],
-    examples: [{ run: "shipeasy gates disable checkout-v2" }],
+    examples: [{ run: "shipeasy release flags disable checkout-v2" }],
     run: async (client: AdminClient, i: OpInput) => {
       const gate = await client.gates.resolve(i.name as string);
       return client.gates.disable(gate.id);
     },
   },
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "rollout",
     mutates: true,
     summary: "Set rollout percentage (0–100)",
@@ -137,19 +137,19 @@ export const gateOperations: Operation[] = [
       { name: "pct", type: "number", description: "Rollout percentage, 0–100.", required: true, positional: true },
     ],
     examples: [
-      { note: "Ramp to 50%", run: "shipeasy gates rollout checkout-v2 50" },
-      { note: "Instant kill — set to 0", run: "shipeasy gates rollout checkout-v2 0" },
+      { note: "Ramp to 50%", run: "shipeasy release flags rollout checkout-v2 50" },
+      { note: "Instant kill — set to 0", run: "shipeasy release flags rollout checkout-v2 0" },
     ],
     run: (client: AdminClient, i: OpInput) => client.gates.setRollout(i.name as string, num(i, "pct")!),
   },
   {
-    resource: "gates",
+    group: ["release", "flags"],
     name: "delete",
     mutates: true,
     summary: "Delete a feature gate",
     description: "Delete a feature gate by name. Refuses if a running experiment references it as a targeting gate.",
     params: [{ name: "name", type: "string", description: "Gate name.", required: true, positional: true }],
-    examples: [{ run: "shipeasy gates delete checkout-v2" }],
+    examples: [{ run: "shipeasy release flags delete checkout-v2" }],
     run: async (client: AdminClient, i: OpInput) => {
       const gate = await client.gates.resolve(i.name as string);
       await client.gates.delete(gate.id);

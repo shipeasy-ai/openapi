@@ -42,14 +42,18 @@ export interface OpExample {
 export type OpInput = Record<string, unknown>;
 
 export interface Operation<O = unknown> {
-  /** Resource family — `gates`, `experiments`, … Groups CLI subcommands + docs. */
-  resource: string;
+  /**
+   * Command-path segments BEFORE the verb, e.g. `["release", "flags"]`.
+   * This is the exact CLI nesting; nested resources just add segments
+   * (`["release", "experiments", "universes"]`). Drives grouping + naming.
+   */
+  group: string[];
   /**
    * The verb, e.g. `create`. Authored ONCE — every surface name derives from
-   * `resource` + `name` so they can never drift:
-   *   id  = `gates.create`   (opId)
-   *   CLI = `gates create`   (resource group + this name)
-   *   MCP = `gates_create`   (opMcpName — `_` because MCP names can't have spaces)
+   * `group` + `name` so they can never drift:
+   *   id  = `release.flags.create`   (opId   — `.`-joined)
+   *   CLI = `release flags create`   (opCli  — space-joined, the real invocation)
+   *   MCP = `release_flags_create`   (opMcpName — `_`-joined; MCP names can't have spaces)
    */
   name: string;
   /** True for writes — the CLI/MCP adapter enforces `.shipeasy` binding before running. */
@@ -92,17 +96,16 @@ export interface CliContext {
   onError: (e: unknown) => void;
 }
 
-/** Stable id, e.g. `gates.create`. */
-export const opId = (op: Pick<Operation, "resource" | "name">): string =>
-  `${op.resource}.${op.name}`;
+type Named = Pick<Operation, "group" | "name">;
 
-/** MCP tool name, e.g. `gates_create` — the CLI's `gates create` with `_` for the space. */
-export const opMcpName = (op: Pick<Operation, "resource" | "name">): string =>
-  `${op.resource}_${op.name}`;
+/** Stable id, e.g. `release.flags.create`. */
+export const opId = (op: Named): string => [...op.group, op.name].join(".");
 
-/** CLI invocation, e.g. `gates create` (resource group + verb). */
-export const opCli = (op: Pick<Operation, "resource" | "name">): string =>
-  `${op.resource} ${op.name}`;
+/** MCP tool name, e.g. `release_flags_create` — the CLI path with `_` for each space. */
+export const opMcpName = (op: Named): string => [...op.group, op.name].join("_");
+
+/** CLI invocation, e.g. `release flags create` (full command path). */
+export const opCli = (op: Named): string => [...op.group, op.name].join(" ");
 
 /** Plain MCP `Tool` shape — structurally compatible with `@modelcontextprotocol/sdk`'s `Tool`. */
 export interface McpTool {
