@@ -174,7 +174,7 @@ export const universesResource = {
         "",
         'Pass `"holdout_range": null` to remove an existing holdout.',
       ].join("\n"),
-      pathParams: { id: "Stable opaque universe id (`uni_…`)." },
+      pathParams: { id: "Stable opaque universe id (`uni_…`) or the universe's `name`." },
       request: universeUpdateSchema,
       response: universeUpdateResponseSchema,
       examples: {
@@ -204,7 +204,7 @@ export const universesResource = {
       summary: "Delete a universe",
       description:
         "Soft-deletes the universe. Returns `409` if any non-archived experiment still references it — archive those experiments first.",
-      pathParams: { id: "Stable opaque universe id." },
+      pathParams: { id: "Stable opaque universe id (`uni_…`) or the universe's `name`." },
       response: universeDeleteResponseSchema,
       examples: { response: { ok: true } },
       useCase: "Tear down a universe after every experiment that used it has been archived.",

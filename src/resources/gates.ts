@@ -291,7 +291,7 @@ export const gatesResource = {
         "",
         "`name` and the gate id are immutable. The response carries only `{ id }` — re-fetch via `GET /api/admin/gates` for the new row.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque gate id (`gat_…`)." },
+      pathParams: { id: "Stable opaque gate id (`gat_…`) or the gate's `name`." },
       request: gateUpdateSchema,
       response: gateUpdateResponseSchema,
       examples: {
@@ -371,7 +371,7 @@ export const gatesResource = {
       summary: "Delete a feature gate",
       description:
         "Soft-deletes the gate. Returns 409 if the gate is still referenced by a running experiment as a targeting gate — stop the experiment first.",
-      pathParams: { id: "Stable opaque gate id (`gat_…`)." },
+      pathParams: { id: "Stable opaque gate id (`gat_…`) or the gate's `name`." },
       response: gateDeleteResponseSchema,
       examples: { response: { ok: true } },
       useCase:
@@ -383,7 +383,7 @@ export const gatesResource = {
       path: "/{id}/enable",
       summary: "Enable a gate",
       description: "Sets `enabled: true`. The current `rollout_pct` is preserved.",
-      pathParams: { id: "Stable opaque gate id." },
+      pathParams: { id: "Stable opaque gate id (`gat_…`) or the gate's `name`." },
       response: gateToggleResponseSchema,
       examples: { response: { id: "gat_01j7w7m9q4hxbf6npe6s9zr3vc", enabled: true } },
       useCase: "Re-enable a previously disabled gate without re-issuing a full update.",
@@ -395,7 +395,7 @@ export const gatesResource = {
       summary: "Disable a gate",
       description:
         "Sets `enabled: false` so the gate evaluates to `false` for every caller, regardless of `rollout_pct` or `rules`. Use as a quick kill switch.",
-      pathParams: { id: "Stable opaque gate id." },
+      pathParams: { id: "Stable opaque gate id (`gat_…`) or the gate's `name`." },
       response: gateToggleResponseSchema,
       examples: { response: { id: "gat_01j7w7m9q4hxbf6npe6s9zr3vc", enabled: false } },
       useCase:

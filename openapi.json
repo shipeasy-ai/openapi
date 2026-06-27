@@ -297,7 +297,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque gate id (`gat_…`).",
+            "description": "Stable opaque gate id (`gat_…`) or the gate's `name`.",
             "schema": {
               "type": "string"
             }
@@ -439,7 +439,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque gate id (`gat_…`).",
+            "description": "Stable opaque gate id (`gat_…`) or the gate's `name`.",
             "schema": {
               "type": "string"
             }
@@ -496,7 +496,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque gate id.",
+            "description": "Stable opaque gate id (`gat_…`) or the gate's `name`.",
             "schema": {
               "type": "string"
             }
@@ -554,7 +554,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque gate id.",
+            "description": "Stable opaque gate id (`gat_…`) or the gate's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1940,7 +1940,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque config id.",
+            "description": "Stable opaque config id (`cfg_…`) or the config's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2043,7 +2043,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque config id.",
+            "description": "Stable opaque config id (`cfg_…`) or the config's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2100,7 +2100,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque config id.",
+            "description": "Stable opaque config id (`cfg_…`) or the config's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2190,7 +2190,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque config id.",
+            "description": "Stable opaque config id (`cfg_…`) or the config's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2266,7 +2266,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque config id.",
+            "description": "Stable opaque config id (`cfg_…`) or the config's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2351,7 +2351,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque config id.",
+            "description": "Stable opaque config id (`cfg_…`) or the config's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2599,7 +2599,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque killswitch id (`ksw_…`).",
+            "description": "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2677,7 +2677,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque killswitch id.",
+            "description": "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2775,7 +2775,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque killswitch id.",
+            "description": "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2832,7 +2832,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque killswitch id.",
+            "description": "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`.",
             "schema": {
               "type": "string"
             }
@@ -2920,7 +2920,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque killswitch id.",
+            "description": "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`.",
             "schema": {
               "type": "string"
             }
@@ -3151,7 +3151,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque universe id (`uni_…`).",
+            "description": "Stable opaque universe id (`uni_…`) or the universe's `name`.",
             "schema": {
               "type": "string"
             }
@@ -3235,7 +3235,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque universe id.",
+            "description": "Stable opaque universe id (`uni_…`) or the universe's `name`.",
             "schema": {
               "type": "string"
             }

@@ -161,7 +161,7 @@ export const killswitchesResource = {
       summary: "Get one killswitch",
       description:
         "Returns the killswitch metadata plus the latest published `value`/`switches`/`version` per env.",
-      pathParams: { id: "Stable opaque killswitch id (`ksw_…`)." },
+      pathParams: { id: "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`." },
       response: killswitchResponseSchema,
       examples: { response: SAMPLE_KS },
       useCase:
@@ -227,7 +227,7 @@ export const killswitchesResource = {
         "",
         "To change a single switch on a single env, use `PUT /{id}/switch` instead.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque killswitch id." },
+      pathParams: { id: "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`." },
       request: killswitchUpdateSchema,
       response: killswitchUpdateResponseSchema,
       examples: {
@@ -270,7 +270,7 @@ export const killswitchesResource = {
       summary: "Delete a killswitch",
       description:
         "Soft-deletes the killswitch and rebuilds the project's flags KV blob so SDKs stop seeing it.",
-      pathParams: { id: "Stable opaque killswitch id." },
+      pathParams: { id: "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`." },
       response: killswitchDeleteResponseSchema,
       examples: { response: { ok: true } },
       useCase: "Tear down a killswitch after the feature it protected has been removed.",
@@ -285,7 +285,7 @@ export const killswitchesResource = {
         "",
         "Use this for surgical per-env, per-key flips during incident response (e.g. trip `eu_region` on prod without touching the flat `value` or other envs).",
       ].join("\n"),
-      pathParams: { id: "Stable opaque killswitch id." },
+      pathParams: { id: "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`." },
       request: killswitchSwitchSetSchema,
       response: killswitchSwitchSetResponseSchema,
       examples: {
@@ -324,7 +324,7 @@ export const killswitchesResource = {
         "",
         "Returns `{ removed: false }` if the entry didn't exist (idempotent no-op).",
       ].join("\n"),
-      pathParams: { id: "Stable opaque killswitch id." },
+      pathParams: { id: "Stable opaque killswitch id (`ksw_…`) or the killswitch's `name`." },
       request: killswitchSwitchUnsetSchema,
       response: killswitchSwitchUnsetResponseSchema,
       examples: {

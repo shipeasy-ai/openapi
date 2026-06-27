@@ -290,7 +290,7 @@ export const configsResource = {
         "",
         "For env-scoped edits, use the draft/publish flow (`PUT /{id}/drafts` then `POST /{id}/publish`) instead.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque config id." },
+      pathParams: { id: "Stable opaque config id (`cfg_…`) or the config's `name`." },
       request: configUpdateSchema,
       response: configUpdateResponseSchema,
       examples: {
@@ -330,7 +330,7 @@ export const configsResource = {
       path: "/{id}",
       summary: "Delete a dynamic config",
       description: "Soft-deletes the config and rebuilds the project's flags KV blob.",
-      pathParams: { id: "Stable opaque config id." },
+      pathParams: { id: "Stable opaque config id (`cfg_…`) or the config's `name`." },
       response: configDeleteResponseSchema,
       examples: { response: { ok: true } },
       useCase: "Tear down a config after its consumers have stopped reading it.",
@@ -345,7 +345,7 @@ export const configsResource = {
         "",
         "Saving over an existing draft overwrites it. Use `POST /{id}/publish` to promote it to a new published version.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque config id." },
+      pathParams: { id: "Stable opaque config id (`cfg_…`) or the config's `name`." },
       request: configDraftUpsertSchema,
       response: configDraftSaveResponseSchema,
       examples: {
@@ -375,7 +375,7 @@ export const configsResource = {
       path: "/{id}/drafts",
       summary: "Discard a draft",
       description: "Drops the in-flight draft on one env. Published values are unaffected.",
-      pathParams: { id: "Stable opaque config id." },
+      pathParams: { id: "Stable opaque config id (`cfg_…`) or the config's `name`." },
       request: configPublishSchema,
       response: configDraftDiscardResponseSchema,
       examples: {
@@ -400,7 +400,7 @@ export const configsResource = {
         "",
         "Returns `404` if there is no draft for the given env.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque config id." },
+      pathParams: { id: "Stable opaque config id (`cfg_…`) or the config's `name`." },
       request: configPublishSchema,
       response: configPublishResponseSchema,
       examples: {
@@ -427,7 +427,7 @@ export const configsResource = {
       summary: "List config activity",
       description:
         "Returns recent audit rows for one config (create, update, draft.save, publish, delete) ordered newest first. Use the `limit` query parameter to cap the result (1–100, default 20).",
-      pathParams: { id: "Stable opaque config id." },
+      pathParams: { id: "Stable opaque config id (`cfg_…`) or the config's `name`." },
       queryParams: {
         limit: {
           schema: z.coerce.number().int().min(1).max(100).default(20),
