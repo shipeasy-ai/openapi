@@ -9,7 +9,8 @@ import { num, str } from "./util.js";
  *
  * Note: the CLI had both `delete` (hard) and `archive` (soft). Per the
  * registry-wide `delete`→`archive` convention (and experiment deletion being
- * UI-only), only `archive` is exposed here.
+ * UI-only), only `archive` is exposed here. `restore` reverses an archive
+ * (archived → draft), preserving the MCP `exp_restore_experiment` capability.
  */
 
 const GROUP = ["release", "experiments"];
@@ -136,6 +137,20 @@ export const experimentOperations: Operation[] = [
     run: async (client: AdminClient, i: OpInput) => {
       const e = await client.experiments.resolve(i.name as string);
       return client.experiments.archive(e.id);
+    },
+  },
+  {
+    group: GROUP,
+    name: "restore",
+    mutates: true,
+    summary: "Restore an archived experiment to draft",
+    description:
+      "Restore a soft-deleted (archived) experiment back to `draft`. Allowed only if it never started; one that already ran must be cloned instead. Preserves the goal metric.",
+    params: [{ name: "name", type: "string", description: "Experiment name.", required: true, positional: true }],
+    examples: [{ run: "shipeasy release experiments restore pricing-page" }],
+    run: async (client: AdminClient, i: OpInput) => {
+      const e = await client.experiments.resolve(i.name as string);
+      return client.experiments.restore(e.id);
     },
   },
   {

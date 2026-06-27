@@ -56,6 +56,8 @@ describe("sibling facade→wire mappings", () => {
       },
       experiments: {
         create: vi.fn().mockResolvedValue({ id: "exp_1" }),
+        resolve: vi.fn().mockResolvedValue({ id: "exp_1", name: "p" }),
+        restore: vi.fn().mockResolvedValue({ id: "exp_1", status: "draft" }),
       },
       universes: {
         create: vi.fn().mockResolvedValue({ id: "uni_1" }),
@@ -101,6 +103,14 @@ describe("sibling facade→wire mappings", () => {
     expect(c.experiments.create).toHaveBeenCalledWith(
       expect.objectContaining({ name: "p", universe: "default", allocation_pct: 5000 }),
     );
+  });
+
+  it("experiment restore: resolves name then restores by id (archived → draft)", async () => {
+    const c = client();
+    const d = operationsToDispatch(ALL_OPERATIONS);
+    await d.release_experiments_restore(c, { name: "p" });
+    expect(c.experiments.resolve).toHaveBeenCalledWith("p");
+    expect(c.experiments.restore).toHaveBeenCalledWith("exp_1");
   });
 
   it("universe create: 'lo,hi' holdout string → tuple", async () => {
