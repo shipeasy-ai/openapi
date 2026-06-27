@@ -5,6 +5,12 @@ import { configsClient, configsResource } from "./configs.js";
 import { universesClient, universesResource } from "./universes.js";
 import { killswitchesClient, killswitchesResource } from "./killswitches.js";
 import { alertRulesClient } from "./alert-rules.js";
+import { metricsClient } from "./metrics.js";
+import { eventsClient } from "./events.js";
+import { opsClient } from "./ops.js";
+import { projectsClient } from "./projects.js";
+import { i18nClient } from "./i18n.js";
+import { attributesClient } from "./attributes.js";
 
 /**
  * Aggregate admin client. Each resource lives in its own file under
@@ -22,6 +28,12 @@ export function createAdminClient(transport: Transport) {
     universes: universesClient(transport),
     killswitches: killswitchesClient(transport),
     alertRules: alertRulesClient(transport),
+    metrics: metricsClient(transport),
+    events: eventsClient(transport),
+    ops: opsClient(transport),
+    projects: projectsClient(transport),
+    i18n: i18nClient(transport),
+    attributes: attributesClient(transport),
   };
 }
 
@@ -52,4 +64,10 @@ export {
   killswitchesClient,
   killswitchesResource,
   alertRulesClient,
+  metricsClient,
+  eventsClient,
+  opsClient,
+  projectsClient,
+  i18nClient,
+  attributesClient,
 };

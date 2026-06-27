@@ -1,26 +1,49 @@
 import { describe, it, expect, vi } from "vitest";
 import type { AdminClient } from "../resources/index.js";
-import { ALL_OPERATIONS } from "./index.js";
+import { ALL_OPERATIONS, RELEASE_OPERATIONS } from "./index.js";
 import { operationsToDispatch, operationsToMcpTools } from "./mcp-adapter.js";
 import { opCli, opMcpName } from "./types.js";
 
 /** Whole-registry invariants + the facade→wire mappings unique to each sibling resource. */
 
-describe("release module registry", () => {
-  it("MCP tool names are unique and mirror the CLI path", () => {
+describe("full registry", () => {
+  it("MCP tool names are unique and mirror the CLI path (spaces → underscores)", () => {
     const tools = operationsToMcpTools(ALL_OPERATIONS);
     const names = tools.map((t) => t.name);
-    expect(new Set(names).size).toBe(names.length); // no collisions
-    // every MCP name is the CLI path with spaces → underscores
+    expect(new Set(names).size).toBe(names.length); // no collisions across all modules
     for (const op of ALL_OPERATIONS) {
       expect(opMcpName(op)).toBe(opCli(op).replaceAll(" ", "_"));
-      expect(opMcpName(op).startsWith("release_")).toBe(true);
     }
   });
 
   it("uses 'archive' for every destructive op — never 'delete'", () => {
     expect(ALL_OPERATIONS.some((o) => o.name === "delete")).toBe(false);
-    const archives = ALL_OPERATIONS.filter((o) => o.name === "archive").map(opMcpName);
+  });
+
+  it("spans every migrated module", () => {
+    const topLevel = new Set(ALL_OPERATIONS.map((o) => o.group[0]));
+    expect([...topLevel].sort()).toEqual([
+      "attributes",
+      "docs",
+      "events",
+      "i18n",
+      "metrics",
+      "ops",
+      "projects",
+      "release",
+    ]);
+  });
+});
+
+describe("release module registry", () => {
+  it("every release op's MCP name starts with release_", () => {
+    for (const op of RELEASE_OPERATIONS) {
+      expect(opMcpName(op).startsWith("release_")).toBe(true);
+    }
+  });
+
+  it("release archives are the five soft-deletes", () => {
+    const archives = RELEASE_OPERATIONS.filter((o) => o.name === "archive").map(opMcpName);
     expect(archives).toEqual([
       "release_flags_archive",
       "release_killswitch_archive",
@@ -31,7 +54,7 @@ describe("release module registry", () => {
   });
 
   it("covers all five resources", () => {
-    const groups = new Set(ALL_OPERATIONS.map((o) => o.group.join(" ")));
+    const groups = new Set(RELEASE_OPERATIONS.map((o) => o.group.join(" ")));
     expect([...groups].sort()).toEqual([
       "release configs",
       "release experiments",

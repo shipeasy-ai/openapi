@@ -23,9 +23,45 @@ export {
   killswitchesClient,
   killswitchesResource,
   alertRulesClient,
+  metricsClient,
+  eventsClient,
+  opsClient,
+  projectsClient,
+  i18nClient,
+  attributesClient,
   RESOURCE_REGISTRY,
 } from "./resources/index.js";
 export type { AdminClient } from "./resources/index.js";
+
+export type { Metric, MetricsClient, MetricCreateInput } from "./resources/metrics.js";
+export type {
+  CatalogEvent,
+  EventsClient,
+  EventProperty,
+  EventCreateInput,
+  EventUpdateInput,
+} from "./resources/events.js";
+export type {
+  OpsClient,
+  OpsItem,
+  OpsType,
+  OpsStatus,
+  OpsPriority,
+  OpsCreateInput,
+  OpsUpdateInput,
+  OpsNotifyInput,
+  SlackChannel,
+  SlackChannelsResponse,
+} from "./resources/ops.js";
+export type { ProjectsClient, UpsertResult, CurrentProject } from "./resources/projects.js";
+export type {
+  I18nClient,
+  I18nProfile,
+  I18nKey,
+  I18nDraft,
+  I18nPushResult,
+} from "./resources/i18n.js";
+export type { AttributesClient, Attribute } from "./resources/attributes.js";
 
 export type { Gate, GatesClient, GateCreateInput, GateUpdateInput } from "./resources/gates.js";
 export type {
@@ -71,11 +107,20 @@ export type {
 // the MCP tools, and their docs. See ./operations/index.ts.
 export {
   ALL_OPERATIONS,
+  RELEASE_OPERATIONS,
   gateOperations,
   killswitchOperations,
   configOperations,
   experimentOperations,
   universeOperations,
+  metricOperations,
+  METRIC_GRAMMAR,
+  eventOperations,
+  opsOperations,
+  projectOperations,
+  i18nOperations,
+  attributeOperations,
+  docsOperations,
   coerceInput,
   mountOperations,
   operationsToMcpTools,

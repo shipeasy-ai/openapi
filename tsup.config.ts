@@ -8,6 +8,7 @@ export default defineConfig({
   entry: [
     "src/index.ts",
     "src/transport.ts",
+    "src/node-context.ts",
     "src/resources/*.ts",
     "src/schemas/*.ts",
     "!src/schemas/*.test.ts",

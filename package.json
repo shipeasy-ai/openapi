@@ -37,6 +37,10 @@
     "./pagination": {
       "types": "./dist/pagination.d.ts",
       "default": "./dist/pagination.js"
+    },
+    "./node-context": {
+      "types": "./dist/node-context.d.ts",
+      "default": "./dist/node-context.js"
     }
   },
   "files": [
