@@ -1,0 +1,39 @@
+name: CI
+
+# Type-check, unit tests, and the spec→SDK contract guard. The guard
+# (`check:spec-sdk`) re-emits openapi.json, generates a typescript-fetch SDK
+# with the real openapi-generator, and strict-compiles it — so a schema change
+# can never ship a spec that produces an invalid or non-compiling SDK.
+#
+# NOTE: when this package folds into the tooling/marketplace monorepo, move
+# `check:spec-sdk` into that repo's root CI matrix; the Java + npx generator
+# steps port verbatim.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      # openapi-generator-cli is a Java tool; the contract guard shells out to it.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      # No lockfile is committed in this standalone repo (deps resolve via the
+      # parent workspace in the monorepo), matching publish.yml.
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm type-check
+      - run: pnpm test
+      - run: pnpm check:spec-sdk

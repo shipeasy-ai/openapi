@@ -51,7 +51,8 @@
     "build": "tsup",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "emit-openapi": "tsx scripts/emit-spec.ts"
+    "emit-openapi": "tsx scripts/emit-spec.ts",
+    "check:spec-sdk": "node scripts/check-spec-sdk.mjs"
   },
   "dependencies": {
     "zod": "^4.0.0"
