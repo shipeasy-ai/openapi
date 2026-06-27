@@ -943,7 +943,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1048,7 +1048,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1105,7 +1105,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1203,7 +1203,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1305,7 +1305,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1388,7 +1388,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }
@@ -1480,7 +1480,7 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Stable opaque experiment id.",
+            "description": "Stable opaque experiment id (`exp_…`) or the experiment's `name`.",
             "schema": {
               "type": "string"
             }

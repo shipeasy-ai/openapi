@@ -342,7 +342,7 @@ export const experimentsResource = {
         "",
         "Editing `groups` while in `draft` is fine; weights must still sum to 10000.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       request: experimentUpdateSchema,
       response: experimentUpdateResponseSchema,
       examples: {
@@ -393,7 +393,7 @@ export const experimentsResource = {
       summary: "Delete an experiment",
       description:
         "Archives the experiment (soft-delete via status transition). Returns `409` if the experiment is still `running` — stop it first.",
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       response: experimentDeleteResponseSchema,
       examples: { response: { ok: true } },
       useCase: "Tear down an experiment after the analysis is signed off.",
@@ -414,7 +414,7 @@ export const experimentsResource = {
         "",
         "Restarting an `archived` experiment directly is not allowed — restore it to `draft` first. Returns `409` on illegal transitions and `429` if the plan's `experiments_running` limit is exceeded on `→ running`.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       request: experimentStatusUpdateSchema,
       response: experimentStatusResponseSchema,
       examples: {
@@ -461,7 +461,7 @@ export const experimentsResource = {
         "",
         "Returns `422` if any `metric_id` doesn't exist in the project. Pass `{ metrics: [] }` to detach everything.",
       ].join("\n"),
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       request: experimentMetricsUpdateSchema,
       response: experimentMetricsResponseSchema,
       examples: {
@@ -502,7 +502,7 @@ export const experimentsResource = {
       summary: "Get analysis results",
       description:
         "Returns the latest analysis output for the experiment — one row per metric/group/day, including sample size, mean, % delta vs. control, p-value, and a sample-ratio mismatch flag.",
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       response: experimentResultsResponseSchema,
       examples: {
         response: {
@@ -545,7 +545,7 @@ export const experimentsResource = {
       summary: "Get analysis timeseries",
       description:
         "Same row shape as `/results`, but returns every daily slice rather than the latest. Filter to a single metric with the `metric` query parameter.",
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       queryParams: {
         metric: {
           schema: z.string().optional(),
@@ -594,7 +594,7 @@ export const experimentsResource = {
       summary: "Re-queue analysis",
       description:
         "Requeues the daily analysis pass for this experiment outside the normal cron cadence. Useful after attaching a new metric or correcting an event taxonomy. The job runs asynchronously.",
-      pathParams: { id: "Stable opaque experiment id." },
+      pathParams: { id: "Stable opaque experiment id (`exp_…`) or the experiment's `name`." },
       response: experimentReanalyzeResponseSchema,
       examples: { response: { id: "exp_01j7wb12c3d4e5f6g7h8j9k0l1", queued: true } },
       useCase:
