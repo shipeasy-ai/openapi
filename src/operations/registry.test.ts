@@ -58,6 +58,10 @@ describe("sibling facade→wire mappings", () => {
         create: vi.fn().mockResolvedValue({ id: "exp_1" }),
         resolve: vi.fn().mockResolvedValue({ id: "exp_1", name: "p" }),
         restore: vi.fn().mockResolvedValue({ id: "exp_1", status: "draft" }),
+        get: vi
+          .fn()
+          .mockResolvedValue({ id: "exp_1", name: "p", status: "running", significance_threshold: 0.05 }),
+        results: vi.fn().mockResolvedValue([{ group_name: "test", p_value: 0.01, srm_detected: 0 }]),
       },
       universes: {
         create: vi.fn().mockResolvedValue({ id: "uni_1" }),
@@ -111,6 +115,27 @@ describe("sibling facade→wire mappings", () => {
     await d.release_experiments_restore(c, { name: "p" });
     expect(c.experiments.resolve).toHaveBeenCalledWith("p");
     expect(c.experiments.restore).toHaveBeenCalledWith("exp_1");
+  });
+
+  it("experiment create: builds an inline goal metric from successEvent", async () => {
+    const c = client();
+    const d = operationsToDispatch(ALL_OPERATIONS);
+    await d.release_experiments_create(c, {
+      name: "p",
+      successEvent: "purchase",
+      successAggregation: "sum",
+      successValue: "amount",
+    });
+    expect(c.experiments.create).toHaveBeenCalledWith(
+      expect.objectContaining({ goal_metric: { query: "sum(purchase, amount)" } }),
+    );
+  });
+
+  it("experiment status: returns a ship verdict when p < threshold", async () => {
+    const c = client();
+    const d = operationsToDispatch(ALL_OPERATIONS);
+    const out = (await d.release_experiments_status(c, { name: "p" })) as { verdict: string };
+    expect(out.verdict).toBe("ship");
   });
 
   it("universe create: 'lo,hi' holdout string → tuple", async () => {
