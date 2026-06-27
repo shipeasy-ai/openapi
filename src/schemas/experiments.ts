@@ -125,7 +125,15 @@ export const experimentCreateSchema = z
       .max(10000)
       .default(0)
       .describe(
-        "Share of the (gated) audience allocated to the experiment, in basis points (0–10000 = 0%–100%). `0` = unallocated. Immutable while the experiment is running.",
+        "Share of the (gated) audience allocated to the experiment, in basis points (0–10000 = 0%–100%). `0` = unallocated. Use `allocation_percent` (0–100) below to think in percent. Immutable while the experiment is running.",
+      ),
+    allocation_percent: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe(
+        "Allocation as a **percentage** (0–100, fractional ok). Friendlier alias for `allocation_pct`; converted to basis points server-side (e.g. `50` = 5000 bp). If both are set, `allocation_percent` wins.",
       ),
     salt: z
       .string()
@@ -205,7 +213,17 @@ export const experimentUpdateSchema = z
       .min(0)
       .max(10000)
       .optional()
-      .describe("Basis-points allocation (0–10000). Immutable while the experiment is running."),
+      .describe(
+        "Basis-points allocation (0–10000). Use `allocation_percent` (0–100) for percent. Immutable while the experiment is running.",
+      ),
+    allocation_percent: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe(
+        "Allocation as a **percentage** (0–100). Friendlier alias for `allocation_pct`; converted to basis points server-side. Wins over `allocation_pct` if both are supplied. Immutable while running.",
+      ),
     salt: z.string().min(1).max(64).optional().describe("Hash salt. Immutable while running."),
     universe: z
       .string()

@@ -5142,10 +5142,16 @@
           },
           "allocation_pct": {
             "default": 0,
-            "description": "Share of the (gated) audience allocated to the experiment, in basis points (0–10000 = 0%–100%). `0` = unallocated. Immutable while the experiment is running.",
+            "description": "Share of the (gated) audience allocated to the experiment, in basis points (0–10000 = 0%–100%). `0` = unallocated. Use `allocation_percent` (0–100) below to think in percent. Immutable while the experiment is running.",
             "type": "integer",
             "minimum": 0,
             "maximum": 10000
+          },
+          "allocation_percent": {
+            "description": "Allocation as a **percentage** (0–100, fractional ok). Friendlier alias for `allocation_pct`; converted to basis points server-side (e.g. `50` = 5000 bp). If both are set, `allocation_percent` wins.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           },
           "salt": {
             "description": "Hash salt for bucketing. Auto-generated if omitted. Immutable while running.",
@@ -5419,10 +5425,16 @@
             ]
           },
           "allocation_pct": {
-            "description": "Basis-points allocation (0–10000). Immutable while the experiment is running.",
+            "description": "Basis-points allocation (0–10000). Use `allocation_percent` (0–100) for percent. Immutable while the experiment is running.",
             "type": "integer",
             "minimum": 0,
             "maximum": 10000
+          },
+          "allocation_percent": {
+            "description": "Allocation as a **percentage** (0–100). Friendlier alias for `allocation_pct`; converted to basis points server-side. Wins over `allocation_pct` if both are supplied. Immutable while running.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           },
           "salt": {
             "description": "Hash salt. Immutable while running.",
