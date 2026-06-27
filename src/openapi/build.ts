@@ -198,10 +198,71 @@ function buildOperation(ctx: BuildOperationCtx): JsonObject {
 function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
   // Zod 4 emits draft 2020-12 by default; OpenAPI 3.1 is a strict superset of
   // 2020-12 so the output is directly compatible.
-  return z.toJSONSchema(schema, {
+  const out = z.toJSONSchema(schema, {
     target: "openapi-3.1",
     unrepresentable: "any",
   }) as JsonSchema;
+  return normalizeForOpenApi31(out);
+}
+
+/**
+ * Post-process Zod's JSON-Schema output into generator-clean OpenAPI 3.1.
+ * Zod 4 emits two constructs that `openapi-generator` (and the 3.1 validator)
+ * reject — both verified against the real spec:
+ *
+ *   1. **Tuples → array-form `items`.** `z.tuple([z.number(), z.number()])`
+ *      (the universe `holdout_range`) emits `{ type: "array", items: [ {...},
+ *      {...} ] }`. Array-form `items` is the draft-4/OpenAPI-3.0 tuple form and
+ *      is INVALID in 3.1 (which uses `prefixItems`); the validator rejects it
+ *      and generators degrade the field to `Array<any>`. We collapse a
+ *      homogeneous tuple to a single `items` schema + `min/maxItems` (so SDKs
+ *      get a clean `number[]`), and convert a heterogeneous tuple to
+ *      `prefixItems` (+ `items: false`).
+ *
+ *   2. **"any" leaf inside a union.** `z.unknown().nullable()` (the config
+ *      activity `payload`) emits `anyOf: [ {}, { type: "null" } ]`. The empty
+ *      schema `{}` already permits every value (null included), so the union is
+ *      redundant — but `openapi-generator` chokes on it and emits a model with
+ *      dangling `FromJSON`/`ToJSON` calls that don't compile. We drop the
+ *      union, leaving the permissive any-schema (annotations preserved).
+ *
+ * Pure structural rewrite; `description`/`default`/`title` are preserved.
+ */
+function normalizeForOpenApi31<T>(node: T): T {
+  if (Array.isArray(node)) return node.map((n) => normalizeForOpenApi31(n)) as unknown as T;
+  if (!node || typeof node !== "object") return node;
+  const obj = node as Record<string, unknown>;
+
+  // Depth-first so nested tuples/unions are fixed before their parents.
+  for (const key of Object.keys(obj)) obj[key] = normalizeForOpenApi31(obj[key]);
+
+  // Rule 1 — array-form tuple `items` → valid 3.1.
+  if (Array.isArray(obj.items)) {
+    const elems = obj.items as JsonSchema[];
+    const len = elems.length;
+    const homogeneous = len > 0 && elems.every((e) => JSON.stringify(e) === JSON.stringify(elems[0]));
+    if (homogeneous) {
+      obj.items = elems[0];
+    } else {
+      obj.prefixItems = elems;
+      obj.items = false;
+    }
+    if (obj.minItems === undefined) obj.minItems = len;
+    if (obj.maxItems === undefined) obj.maxItems = len;
+  }
+
+  // Rule 2 — union containing an "any" leaf ({}) collapses to the any-schema.
+  for (const comb of ["anyOf", "oneOf"] as const) {
+    const branches = obj[comb];
+    if (Array.isArray(branches) && branches.some(isEmptySchema)) delete obj[comb];
+  }
+
+  return node;
+}
+
+/** A schema with no constraint keys — Zod's representation of `any`/`unknown`. */
+function isEmptySchema(s: unknown): boolean {
+  return !!s && typeof s === "object" && !Array.isArray(s) && Object.keys(s as object).length === 0;
 }
 
 function looksLikePageEnvelope(schema: JsonSchema): boolean {

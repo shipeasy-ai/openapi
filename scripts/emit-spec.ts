@@ -26,7 +26,7 @@ const doc = buildOpenApi({
     description:
       'REST API for managing feature gates, experiments, configs, universes, and killswitches in a Shipeasy project. Authenticate with an admin SDK key (`Authorization: Bearer sdk_admin_…`) and scope every request to a project via the `X-Project-Id` header.\n\nMint admin keys via `POST /api/admin/keys` with `type: "admin"`. Keys expire after 90 days; rotate with the `revoke` action.',
     contact: { name: "Shipeasy", url: "https://shipeasy.ai" },
-    license: { name: "Proprietary" },
+    license: { name: "Proprietary", identifier: "LicenseRef-Proprietary" },
   },
   servers: [
     { url: "https://shipeasy.ai", description: "Production" },

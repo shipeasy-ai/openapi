@@ -9,7 +9,8 @@
       "url": "https://shipeasy.ai"
     },
     "license": {
-      "name": "Proprietary"
+      "name": "Proprietary",
+      "identifier": "LicenseRef-Proprietary"
     }
   },
   "servers": [
@@ -6262,18 +6263,6 @@
             "description": "JSON Schema (draft 2020-12) describing the shape of the config value. Top-level `type` must be `'object'`; every published value is validated against this schema."
           },
           "value": {
-            "anyOf": [
-              {},
-              {
-                "type": "object",
-                "additionalProperties": {},
-                "required": [
-                  "dev",
-                  "staging",
-                  "prod"
-                ]
-              }
-            ],
             "description": "Initial config value. Either a single JSON object applied to every env, or a `{ env: value }` map seeding per-env values. Must match `schema`. Defaults to `{}` on every env when omitted."
           }
         },
@@ -6516,14 +6505,7 @@
                 "system"
               ]
             },
-            "payload": {
-              "anyOf": [
-                {},
-                {
-                  "type": "null"
-                }
-              ]
-            },
+            "payload": {},
             "createdAt": {
               "type": "string",
               "description": "ISO-8601 timestamp."
@@ -7000,14 +6982,11 @@
                   "anyOf": [
                     {
                       "type": "array",
-                      "items": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "number"
-                        }
-                      ]
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
                     },
                     {
                       "type": "null"
@@ -7079,18 +7058,13 @@
             "anyOf": [
               {
                 "type": "array",
-                "items": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9999
-                  },
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9999
-                  }
-                ]
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9999
+                },
+                "minItems": 2,
+                "maxItems": 2
               },
               {
                 "type": "null"
@@ -7147,18 +7121,13 @@
             "anyOf": [
               {
                 "type": "array",
-                "items": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9999
-                  },
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9999
-                  }
-                ]
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9999
+                },
+                "minItems": 2,
+                "maxItems": 2
               },
               {
                 "type": "null"
