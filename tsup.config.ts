@@ -9,6 +9,8 @@ export default defineConfig({
     "src/index.ts",
     "src/transport.ts",
     "src/node-context.ts",
+    // The spec-generated admin SDK (hey-api), exposed at `@shipeasy/openapi/client`.
+    "src/generated/index.ts",
     "src/resources/*.ts",
     "src/schemas/*.ts",
     "!src/schemas/*.test.ts",

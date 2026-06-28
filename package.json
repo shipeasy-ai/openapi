@@ -30,6 +30,10 @@
       "types": "./dist/operations/index.d.ts",
       "default": "./dist/operations/index.js"
     },
+    "./client": {
+      "types": "./dist/generated/index.d.ts",
+      "default": "./dist/generated/index.js"
+    },
     "./transport": {
       "types": "./dist/transport.d.ts",
       "default": "./dist/transport.js"
@@ -52,12 +56,14 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "emit-openapi": "tsx scripts/emit-spec.ts",
+    "gen:sdk": "openapi-ts",
     "check:spec-sdk": "node scripts/check-spec-sdk.mjs"
   },
   "dependencies": {
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
     "@types/node": "^20.19.39",
     "openapi-types": "^12.1.3",
     "tsup": "^8.3.0",
