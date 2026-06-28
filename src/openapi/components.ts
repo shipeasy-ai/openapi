@@ -39,8 +39,9 @@ export const COMMON_PARAMETERS: Record<string, JsonObject> = {
   ProjectId: {
     name: "X-Project-Id",
     in: "header",
-    required: true,
-    description: "Project the request operates on. Must match the project the SDK key belongs to.",
+    required: false,
+    description:
+      "Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).",
     schema: { type: "string" },
   },
   PaginationLimit: {
