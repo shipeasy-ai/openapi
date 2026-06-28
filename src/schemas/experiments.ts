@@ -417,7 +417,7 @@ export const experimentMetricsResponseSchema = z.object({
   ),
 });
 
-const experimentResultRowSchema = z.object({
+export const experimentResultRowSchema = z.object({
   metric: z.string(),
   group_name: z.string(),
   ds: z.string().describe("Date slice (`YYYY-MM-DD`)."),

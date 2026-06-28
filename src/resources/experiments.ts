@@ -11,6 +11,7 @@ import {
   experimentStatusResponseSchema,
   experimentMetricsResponseSchema,
   experimentResultsResponseSchema,
+  experimentResultRowSchema,
   experimentTimeseriesResponseSchema,
   experimentReanalyzeResponseSchema,
 } from "../schemas/experiments.js";
@@ -44,16 +45,9 @@ export interface Experiment {
   updatedAt?: string;
 }
 
-export interface ExperimentResult {
-  metric: string;
-  group_name: string;
-  ds: string;
-  n: number | null;
-  mean: number | null;
-  delta_pct: number | null;
-  p_value: number | null;
-  srm_detected: number | null;
-}
+/** A single analysis-result row — inferred from the response schema (the one
+ *  source of truth), not re-typed by hand. */
+export type ExperimentResult = z.infer<typeof experimentResultRowSchema>;
 
 export interface ExperimentTimeseriesPoint {
   ds: string;
@@ -62,16 +56,12 @@ export interface ExperimentTimeseriesPoint {
   value: number | null;
 }
 
-/** Verdict the server computes from the goal + guardrails + SRM. */
-export type ExperimentVerdict = "ship" | "hold" | "wait" | "invalid" | "draft";
+/** `GET /{id}/results` response (latest analysis rows + the server-computed
+ *  ship/hold/wait verdict) — inferred from the response schema, not re-typed. */
+export type ExperimentResultsBundle = z.infer<typeof experimentResultsResponseSchema>;
 
-/** `GET /{id}/results` response — latest analysis rows plus the server-computed
- *  ship/hold/wait verdict (the decision policy now lives behind the API). */
-export interface ExperimentResultsBundle {
-  experiment: { id: string; name: string; status: string };
-  results: ExperimentResult[];
-  verdict: ExperimentVerdict;
-}
+/** Verdict the server computes from the goal + guardrails + SRM. */
+export type ExperimentVerdict = ExperimentResultsBundle["verdict"];
 
 export type ExperimentStatus = "draft" | "running" | "stopped" | "archived";
 
