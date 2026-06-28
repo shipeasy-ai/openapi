@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApproveEventData, ApproveEventErrors, ApproveEventResponses, CreateAlertRuleData, CreateAlertRuleErrors, CreateAlertRuleResponses, CreateBugData, CreateBugErrors, CreateBugResponses, CreateConfigData, CreateConfigErrors, CreateConfigResponses, CreateEventData, CreateEventErrors, CreateEventResponses, CreateExperimentData, CreateExperimentErrors, CreateExperimentResponses, CreateFeatureRequestData, CreateFeatureRequestErrors, CreateFeatureRequestResponses, CreateGateData, CreateGateErrors, CreateGateResponses, CreateI18nProfileData, CreateI18nProfileErrors, CreateI18nProfileResponses, CreateKillswitchData, CreateKillswitchErrors, CreateKillswitchResponses, CreateMetricData, CreateMetricErrors, CreateMetricResponses, CreateUniverseData, CreateUniverseErrors, CreateUniverseResponses, DeleteAlertRuleData, DeleteAlertRuleErrors, DeleteAlertRuleResponses, DeleteConfigData, DeleteConfigErrors, DeleteConfigResponses, DeleteEventData, DeleteEventErrors, DeleteEventResponses, DeleteExperimentData, DeleteExperimentErrors, DeleteExperimentResponses, DeleteGateData, DeleteGateErrors, DeleteGateResponses, DeleteKillswitchData, DeleteKillswitchErrors, DeleteKillswitchResponses, DeleteMetricData, DeleteMetricErrors, DeleteMetricResponses, DeleteUniverseData, DeleteUniverseErrors, DeleteUniverseResponses, DisableGateData, DisableGateErrors, DisableGateResponses, DiscardConfigDraftData, DiscardConfigDraftErrors, DiscardConfigDraftResponses, EnableGateData, EnableGateErrors, EnableGateResponses, GetConfigData, GetConfigErrors, GetConfigResponses, GetCurrentProjectData, GetCurrentProjectErrors, GetCurrentProjectResponses, GetEventData, GetEventErrors, GetEventResponses, GetExperimentData, GetExperimentErrors, GetExperimentResponses, GetExperimentResultsData, GetExperimentResultsErrors, GetExperimentResultsResponses, GetExperimentTimeseriesData, GetExperimentTimeseriesErrors, GetExperimentTimeseriesResponses, GetKillswitchData, GetKillswitchErrors, GetKillswitchResponses, GetMetricData, GetMetricErrors, GetMetricResponses, GetOpsItemData, GetOpsItemErrors, GetOpsItemResponses, LinkPrToOpsItemData, LinkPrToOpsItemErrors, LinkPrToOpsItemResponses, ListAlertRulesData, ListAlertRulesErrors, ListAlertRulesResponses, ListAttributesData, ListAttributesErrors, ListAttributesResponses, ListConfigActivityData, ListConfigActivityErrors, ListConfigActivityResponses, ListConfigsData, ListConfigsErrors, ListConfigsResponses, ListEventsData, ListEventsErrors, ListEventsResponses, ListExperimentsData, ListExperimentsErrors, ListExperimentsResponses, ListGatesData, ListGatesErrors, ListGatesResponses, ListI18nDraftsData, ListI18nDraftsErrors, ListI18nDraftsResponses, ListI18nKeysData, ListI18nKeysErrors, ListI18nKeysResponses, ListI18nProfilesData, ListI18nProfilesErrors, ListI18nProfilesResponses, ListKillswitchesData, ListKillswitchesErrors, ListKillswitchesResponses, ListMetricsData, ListMetricsErrors, ListMetricsResponses, ListOpsItemsData, ListOpsItemsErrors, ListOpsItemsResponses, ListSlackChannelsData, ListSlackChannelsErrors, ListSlackChannelsResponses, ListUniversesData, ListUniversesErrors, ListUniversesResponses, NotifyOpsData, NotifyOpsErrors, NotifyOpsResponses, PublishConfigDraftData, PublishConfigDraftErrors, PublishConfigDraftResponses, PublishI18nProfileData, PublishI18nProfileErrors, PublishI18nProfileResponses, PushI18nKeysData, PushI18nKeysErrors, PushI18nKeysResponses, ReanalyzeExperimentData, ReanalyzeExperimentErrors, ReanalyzeExperimentResponses, SaveConfigDraftData, SaveConfigDraftErrors, SaveConfigDraftResponses, SetExperimentMetricsData, SetExperimentMetricsErrors, SetExperimentMetricsResponses, SetExperimentStatusData, SetExperimentStatusErrors, SetExperimentStatusResponses, SetKillswitchSwitchData, SetKillswitchSwitchErrors, SetKillswitchSwitchResponses, UnsetKillswitchSwitchData, UnsetKillswitchSwitchErrors, UnsetKillswitchSwitchResponses, UpdateAlertRuleData, UpdateAlertRuleErrors, UpdateAlertRuleResponses, UpdateConfigData, UpdateConfigErrors, UpdateConfigResponses, UpdateEventData, UpdateEventErrors, UpdateEventResponses, UpdateExperimentData, UpdateExperimentErrors, UpdateExperimentResponses, UpdateGateData, UpdateGateErrors, UpdateGateResponses, UpdateI18nKeyData, UpdateI18nKeyErrors, UpdateI18nKeyResponses, UpdateKillswitchData, UpdateKillswitchErrors, UpdateKillswitchResponses, UpdateOpsItemData, UpdateOpsItemErrors, UpdateOpsItemResponses, UpdateUniverseData, UpdateUniverseErrors, UpdateUniverseResponses, UpsertProjectData, UpsertProjectErrors, UpsertProjectResponses } from './types.gen';
+import type { ApproveEventData, ApproveEventErrors, ApproveEventResponses, CreateAlertRuleData, CreateAlertRuleErrors, CreateAlertRuleResponses, CreateConfigData, CreateConfigErrors, CreateConfigResponses, CreateEventData, CreateEventErrors, CreateEventResponses, CreateExperimentData, CreateExperimentErrors, CreateExperimentResponses, CreateGateData, CreateGateErrors, CreateGateResponses, CreateI18nProfileData, CreateI18nProfileErrors, CreateI18nProfileResponses, CreateKillswitchData, CreateKillswitchErrors, CreateKillswitchResponses, CreateMetricData, CreateMetricErrors, CreateMetricResponses, CreateOpsItemData, CreateOpsItemErrors, CreateOpsItemResponses, CreateUniverseData, CreateUniverseErrors, CreateUniverseResponses, DeleteAlertRuleData, DeleteAlertRuleErrors, DeleteAlertRuleResponses, DeleteConfigData, DeleteConfigErrors, DeleteConfigResponses, DeleteEventData, DeleteEventErrors, DeleteEventResponses, DeleteExperimentData, DeleteExperimentErrors, DeleteExperimentResponses, DeleteGateData, DeleteGateErrors, DeleteGateResponses, DeleteKillswitchData, DeleteKillswitchErrors, DeleteKillswitchResponses, DeleteMetricData, DeleteMetricErrors, DeleteMetricResponses, DeleteUniverseData, DeleteUniverseErrors, DeleteUniverseResponses, DisableGateData, DisableGateErrors, DisableGateResponses, DiscardConfigDraftData, DiscardConfigDraftErrors, DiscardConfigDraftResponses, EnableGateData, EnableGateErrors, EnableGateResponses, GetConfigData, GetConfigErrors, GetConfigResponses, GetCurrentProjectData, GetCurrentProjectErrors, GetCurrentProjectResponses, GetEventData, GetEventErrors, GetEventResponses, GetExperimentData, GetExperimentErrors, GetExperimentResponses, GetExperimentResultsData, GetExperimentResultsErrors, GetExperimentResultsResponses, GetExperimentTimeseriesData, GetExperimentTimeseriesErrors, GetExperimentTimeseriesResponses, GetKillswitchData, GetKillswitchErrors, GetKillswitchResponses, GetMetricData, GetMetricErrors, GetMetricResponses, GetOpsItemData, GetOpsItemErrors, GetOpsItemResponses, LinkPrToOpsItemData, LinkPrToOpsItemErrors, LinkPrToOpsItemResponses, ListAlertRulesData, ListAlertRulesErrors, ListAlertRulesResponses, ListAttributesData, ListAttributesErrors, ListAttributesResponses, ListConfigActivityData, ListConfigActivityErrors, ListConfigActivityResponses, ListConfigsData, ListConfigsErrors, ListConfigsResponses, ListEventsData, ListEventsErrors, ListEventsResponses, ListExperimentsData, ListExperimentsErrors, ListExperimentsResponses, ListGatesData, ListGatesErrors, ListGatesResponses, ListI18nDraftsData, ListI18nDraftsErrors, ListI18nDraftsResponses, ListI18nKeysData, ListI18nKeysErrors, ListI18nKeysResponses, ListI18nProfilesData, ListI18nProfilesErrors, ListI18nProfilesResponses, ListKillswitchesData, ListKillswitchesErrors, ListKillswitchesResponses, ListMetricsData, ListMetricsErrors, ListMetricsResponses, ListOpsItemsData, ListOpsItemsErrors, ListOpsItemsResponses, ListSlackChannelsData, ListSlackChannelsErrors, ListSlackChannelsResponses, ListUniversesData, ListUniversesErrors, ListUniversesResponses, NotifyOpsData, NotifyOpsErrors, NotifyOpsResponses, PublishConfigDraftData, PublishConfigDraftErrors, PublishConfigDraftResponses, PublishI18nProfileData, PublishI18nProfileErrors, PublishI18nProfileResponses, PushI18nKeysData, PushI18nKeysErrors, PushI18nKeysResponses, ReanalyzeExperimentData, ReanalyzeExperimentErrors, ReanalyzeExperimentResponses, SaveConfigDraftData, SaveConfigDraftErrors, SaveConfigDraftResponses, SetExperimentMetricsData, SetExperimentMetricsErrors, SetExperimentMetricsResponses, SetExperimentStatusData, SetExperimentStatusErrors, SetExperimentStatusResponses, SetKillswitchSwitchData, SetKillswitchSwitchErrors, SetKillswitchSwitchResponses, UnsetKillswitchSwitchData, UnsetKillswitchSwitchErrors, UnsetKillswitchSwitchResponses, UpdateAlertRuleData, UpdateAlertRuleErrors, UpdateAlertRuleResponses, UpdateConfigData, UpdateConfigErrors, UpdateConfigResponses, UpdateEventData, UpdateEventErrors, UpdateEventResponses, UpdateExperimentData, UpdateExperimentErrors, UpdateExperimentResponses, UpdateGateData, UpdateGateErrors, UpdateGateResponses, UpdateI18nKeyData, UpdateI18nKeyErrors, UpdateI18nKeyResponses, UpdateKillswitchData, UpdateKillswitchErrors, UpdateKillswitchResponses, UpdateOpsItemData, UpdateOpsItemErrors, UpdateOpsItemResponses, UpdateUniverseData, UpdateUniverseErrors, UpdateUniverseResponses, UpsertProjectData, UpsertProjectErrors, UpsertProjectResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -831,14 +831,31 @@ export const approveEvent = <ThrowOnError extends boolean = false>(options: Opti
 /**
  * List the operational queue
  *
- * Returns the unified feedback queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.
+ * Returns the unified ops queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.
  *
  * **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
  */
 export const listOpsItems = <ThrowOnError extends boolean = false>(options?: Options<ListOpsItemsData, ThrowOnError>): RequestResult<ListOpsItemsResponses, ListOpsItemsErrors, ThrowOnError> => (options?.client ?? client).get<ListOpsItemsResponses, ListOpsItemsErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/admin/feedback',
+    url: '/api/admin/ops',
     ...options
+});
+
+/**
+ * File a queue item
+ *
+ * Files one queue item — a bug report or a feature request — and fires the project's connectors (GitHub issue / Slack). `type` selects which; only the two user-fileable types are accepted (`error`/`alert` tickets are auto-filed). Returns the new id and per-project number.
+ *
+ * **Use case:** File a bug or feature request programmatically so it lands in the same queue the dashboard shows.
+ */
+export const createOpsItem = <ThrowOnError extends boolean = false>(options: Options<CreateOpsItemData, ThrowOnError>): RequestResult<CreateOpsItemResponses, CreateOpsItemErrors, ThrowOnError> => (options.client ?? client).post<CreateOpsItemResponses, CreateOpsItemErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/ops',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -850,7 +867,7 @@ export const listOpsItems = <ThrowOnError extends boolean = false>(options?: Opt
  */
 export const getOpsItem = <ThrowOnError extends boolean = false>(options: Options<GetOpsItemData, ThrowOnError>): RequestResult<GetOpsItemResponses, GetOpsItemErrors, ThrowOnError> => (options.client ?? client).get<GetOpsItemResponses, GetOpsItemErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/admin/feedback/{handle}',
+    url: '/api/admin/ops/{handle}',
     ...options
 });
 
@@ -863,41 +880,7 @@ export const getOpsItem = <ThrowOnError extends boolean = false>(options: Option
  */
 export const updateOpsItem = <ThrowOnError extends boolean = false>(options: Options<UpdateOpsItemData, ThrowOnError>): RequestResult<UpdateOpsItemResponses, UpdateOpsItemErrors, ThrowOnError> => (options.client ?? client).patch<UpdateOpsItemResponses, UpdateOpsItemErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/admin/feedback/{handle}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * File a bug report
- *
- * Files a bug into the queue and fires the project's connectors (GitHub issue / Slack). Returns the new id and per-project number.
- *
- * **Use case:** Report a defect programmatically so it lands in the same queue the dashboard shows.
- */
-export const createBug = <ThrowOnError extends boolean = false>(options: Options<CreateBugData, ThrowOnError>): RequestResult<CreateBugResponses, CreateBugErrors, ThrowOnError> => (options.client ?? client).post<CreateBugResponses, CreateBugErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/admin/bugs',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * File a feature request
- *
- * Files a feature request into the queue and fires the project's connectors. Returns the new id and per-project number.
- *
- * **Use case:** Capture a feature ask from an integration or a user-facing widget.
- */
-export const createFeatureRequest = <ThrowOnError extends boolean = false>(options: Options<CreateFeatureRequestData, ThrowOnError>): RequestResult<CreateFeatureRequestResponses, CreateFeatureRequestErrors, ThrowOnError> => (options.client ?? client).post<CreateFeatureRequestResponses, CreateFeatureRequestErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/admin/feature-requests',
+    url: '/api/admin/ops/{handle}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -914,7 +897,7 @@ export const createFeatureRequest = <ThrowOnError extends boolean = false>(optio
  */
 export const linkPrToOpsItem = <ThrowOnError extends boolean = false>(options: Options<LinkPrToOpsItemData, ThrowOnError>): RequestResult<LinkPrToOpsItemResponses, LinkPrToOpsItemErrors, ThrowOnError> => (options.client ?? client).post<LinkPrToOpsItemResponses, LinkPrToOpsItemErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/admin/feedback/{handle}/link-pr',
+    url: '/api/admin/ops/{handle}/link-pr',
     ...options,
     headers: {
         'Content-Type': 'application/json',

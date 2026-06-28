@@ -2646,9 +2646,13 @@ export type GetOpsItemResponse = {
 };
 
 /**
- * Body for `POST /api/admin/bugs`.
+ * Body for `POST /api/admin/ops`. Files one queue item; `type` selects bug vs. feature request.
  */
-export type CreateBugRequest = {
+export type CreateOpsItemRequest = {
+    /**
+     * Item type to file (`bug` or `feature_request`).
+     */
+    type: 'bug' | 'feature_request';
     /**
      * One-line title of the bug or feature request.
      */
@@ -2674,7 +2678,7 @@ export type CreateBugRequest = {
 /**
  * Response for the create endpoints.
  */
-export type CreateBugResponse = {
+export type CreateOpsItemResponse = {
     /**
      * Newly created item id.
      */
@@ -2686,47 +2690,7 @@ export type CreateBugResponse = {
 };
 
 /**
- * Body for `POST /api/admin/feature-requests`.
- */
-export type CreateFeatureRequestRequest = {
-    /**
-     * One-line title of the bug or feature request.
-     */
-    title: string;
-    /**
-     * Detailed description / steps to reproduce.
-     */
-    body?: string;
-    /**
-     * Initial triage priority.
-     */
-    priority?: 'nice_to_have' | 'medium' | 'high' | 'critical';
-    /**
-     * Reproduction steps (bugs).
-     */
-    stepsToReproduce?: string;
-    /**
-     * URL of the page the item relates to.
-     */
-    pageUrl?: string;
-};
-
-/**
- * Response for the create endpoints.
- */
-export type CreateFeatureRequestResponse = {
-    /**
-     * Newly created item id.
-     */
-    id: string;
-    /**
-     * Per-project item number assigned to the new item.
-     */
-    number?: number | null;
-};
-
-/**
- * Body for `PATCH /api/admin/feedback/{handle}`. Pass at least one of `status` / `priority`.
+ * Body for `PATCH /api/admin/ops/{handle}`. Pass at least one of `status` / `priority`.
  */
 export type UpdateOpsItemRequest = {
     /**
@@ -2750,7 +2714,7 @@ export type UpdateOpsItemResponse = {
 };
 
 /**
- * Body for `POST /api/admin/feedback/{handle}/link-pr`.
+ * Body for `POST /api/admin/ops/{handle}/link-pr`.
  */
 export type LinkPrToOpsItemRequest = {
     /**
@@ -6058,7 +6022,7 @@ export type ListOpsItemsData = {
          */
         limit?: number;
     };
-    url: '/api/admin/feedback';
+    url: '/api/admin/ops';
 };
 
 export type ListOpsItemsErrors = {
@@ -6099,6 +6063,57 @@ export type ListOpsItemsResponses = {
 
 export type ListOpsItemsResponse2 = ListOpsItemsResponses[keyof ListOpsItemsResponses];
 
+export type CreateOpsItemData = {
+    body: CreateOpsItemRequest;
+    headers?: {
+        /**
+         * Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+         */
+        'X-Project-Id'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/admin/ops';
+};
+
+export type CreateOpsItemErrors = {
+    /**
+     * The request was malformed or failed validation.
+     */
+    400: ErrorResponse;
+    /**
+     * Missing or invalid SDK key.
+     */
+    401: ErrorResponse;
+    /**
+     * SDK key is valid but not allowed to act on this project.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: ErrorResponse;
+    /**
+     * The mutation conflicts with current state (e.g. duplicate name, or a referenced row is still in use).
+     */
+    409: ErrorResponse;
+    /**
+     * Zod schema validation rejected the request body.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateOpsItemError = CreateOpsItemErrors[keyof CreateOpsItemErrors];
+
+export type CreateOpsItemResponses = {
+    /**
+     * File a queue item
+     */
+    201: CreateOpsItemResponse;
+};
+
+export type CreateOpsItemResponse2 = CreateOpsItemResponses[keyof CreateOpsItemResponses];
+
 export type GetOpsItemData = {
     body?: never;
     headers?: {
@@ -6109,12 +6124,12 @@ export type GetOpsItemData = {
     };
     path: {
         /**
-         * Per-project item number (e.g. `7`) or the full feedback id.
+         * Per-project item number (e.g. `7`) or the full ops item id.
          */
         handle: string;
     };
     query?: never;
-    url: '/api/admin/feedback/{handle}';
+    url: '/api/admin/ops/{handle}';
 };
 
 export type GetOpsItemErrors = {
@@ -6165,12 +6180,12 @@ export type UpdateOpsItemData = {
     };
     path: {
         /**
-         * Per-project item number (e.g. `7`) or the full feedback id.
+         * Per-project item number (e.g. `7`) or the full ops item id.
          */
         handle: string;
     };
     query?: never;
-    url: '/api/admin/feedback/{handle}';
+    url: '/api/admin/ops/{handle}';
 };
 
 export type UpdateOpsItemErrors = {
@@ -6211,108 +6226,6 @@ export type UpdateOpsItemResponses = {
 
 export type UpdateOpsItemResponse2 = UpdateOpsItemResponses[keyof UpdateOpsItemResponses];
 
-export type CreateBugData = {
-    body: CreateBugRequest;
-    headers?: {
-        /**
-         * Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
-         */
-        'X-Project-Id'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/api/admin/bugs';
-};
-
-export type CreateBugErrors = {
-    /**
-     * The request was malformed or failed validation.
-     */
-    400: ErrorResponse;
-    /**
-     * Missing or invalid SDK key.
-     */
-    401: ErrorResponse;
-    /**
-     * SDK key is valid but not allowed to act on this project.
-     */
-    403: ErrorResponse;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: ErrorResponse;
-    /**
-     * The mutation conflicts with current state (e.g. duplicate name, or a referenced row is still in use).
-     */
-    409: ErrorResponse;
-    /**
-     * Zod schema validation rejected the request body.
-     */
-    422: ErrorResponse;
-};
-
-export type CreateBugError = CreateBugErrors[keyof CreateBugErrors];
-
-export type CreateBugResponses = {
-    /**
-     * File a bug report
-     */
-    201: CreateBugResponse;
-};
-
-export type CreateBugResponse2 = CreateBugResponses[keyof CreateBugResponses];
-
-export type CreateFeatureRequestData = {
-    body: CreateFeatureRequestRequest;
-    headers?: {
-        /**
-         * Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
-         */
-        'X-Project-Id'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/api/admin/feature-requests';
-};
-
-export type CreateFeatureRequestErrors = {
-    /**
-     * The request was malformed or failed validation.
-     */
-    400: ErrorResponse;
-    /**
-     * Missing or invalid SDK key.
-     */
-    401: ErrorResponse;
-    /**
-     * SDK key is valid but not allowed to act on this project.
-     */
-    403: ErrorResponse;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: ErrorResponse;
-    /**
-     * The mutation conflicts with current state (e.g. duplicate name, or a referenced row is still in use).
-     */
-    409: ErrorResponse;
-    /**
-     * Zod schema validation rejected the request body.
-     */
-    422: ErrorResponse;
-};
-
-export type CreateFeatureRequestError = CreateFeatureRequestErrors[keyof CreateFeatureRequestErrors];
-
-export type CreateFeatureRequestResponses = {
-    /**
-     * File a feature request
-     */
-    201: CreateFeatureRequestResponse;
-};
-
-export type CreateFeatureRequestResponse2 = CreateFeatureRequestResponses[keyof CreateFeatureRequestResponses];
-
 export type LinkPrToOpsItemData = {
     body: LinkPrToOpsItemRequest;
     headers?: {
@@ -6323,12 +6236,12 @@ export type LinkPrToOpsItemData = {
     };
     path: {
         /**
-         * Per-project item number (e.g. `7`) or the full feedback id.
+         * Per-project item number (e.g. `7`) or the full ops item id.
          */
         handle: string;
     };
     query?: never;
-    url: '/api/admin/feedback/{handle}/link-pr';
+    url: '/api/admin/ops/{handle}/link-pr';
 };
 
 export type LinkPrToOpsItemErrors = {

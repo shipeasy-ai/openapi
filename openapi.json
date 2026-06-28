@@ -58,7 +58,7 @@
     },
     {
       "name": "Ops",
-      "description": "Operational queue: the unified feedback table of bug reports, feature\nrequests, and auto-filed error/alert tickets. List/get/update are unified\nover `/feedback`; bug vs. feature creates are per-type. Also exposes the\n`notify` escalation bell and the read-only Slack-channels list used to\nresolve alert-rule notification targets.\n\n**Handles.** A queue item is addressed by its per-project `number` (e.g. `7`)\nor its full id — the API resolves either."
+      "description": "Operational queue: the unified table of bug reports, feature requests, and\nauto-filed error/alert tickets, all over `/api/admin/ops`. One `create`\nendpoint files either user type (`type: bug | feature_request`); list, get,\nupdate, and link-pr are unified across every type. Also exposes the `notify`\nescalation bell and the read-only Slack-channels list used to resolve\nalert-rule notification targets.\n\n**Handles.** A queue item is addressed by its per-project `number` (e.g. `7`)\nor its full id — the API resolves either."
     },
     {
       "name": "Alert Rules",
@@ -4088,11 +4088,11 @@
         }
       }
     },
-    "/api/admin/feedback": {
+    "/api/admin/ops": {
       "get": {
         "operationId": "listOpsItems",
         "summary": "List the operational queue",
-        "description": "Returns the unified feedback queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.\n\n**Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.",
+        "description": "Returns the unified ops queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.\n\n**Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.",
         "tags": [
           "Ops"
         ],
@@ -4203,9 +4203,72 @@
             "$ref": "#/components/responses/UnprocessableEntity"
           }
         }
+      },
+      "post": {
+        "operationId": "createOpsItem",
+        "summary": "File a queue item",
+        "description": "Files one queue item — a bug report or a feature request — and fires the project's connectors (GitHub issue / Slack). `type` selects which; only the two user-fileable types are accepted (`error`/`alert` tickets are auto-filed). Returns the new id and per-project number.\n\n**Use case:** File a bug or feature request programmatically so it lands in the same queue the dashboard shows.",
+        "tags": [
+          "Ops"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOpsItemRequest"
+              },
+              "example": {
+                "type": "bug",
+                "title": "Checkout button misaligned on mobile",
+                "body": "On iOS Safari the primary CTA overlaps the price.",
+                "priority": "high"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File a queue item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOpsItemResponse"
+                },
+                "example": {
+                  "id": "fb_01j7w8a1b2c3d4e5f6g7h8i9j0",
+                  "number": 7
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          }
+        }
       }
     },
-    "/api/admin/feedback/{handle}": {
+    "/api/admin/ops/{handle}": {
       "get": {
         "operationId": "getOpsItem",
         "summary": "Get one queue item",
@@ -4221,7 +4284,7 @@
             "name": "handle",
             "in": "path",
             "required": true,
-            "description": "Per-project item number (e.g. `7`) or the full feedback id.",
+            "description": "Per-project item number (e.g. `7`) or the full ops item id.",
             "schema": {
               "type": "string"
             }
@@ -4282,7 +4345,7 @@
             "name": "handle",
             "in": "path",
             "required": true,
-            "description": "Per-project item number (e.g. `7`) or the full feedback id.",
+            "description": "Per-project item number (e.g. `7`) or the full ops item id.",
             "schema": {
               "type": "string"
             }
@@ -4337,135 +4400,7 @@
         }
       }
     },
-    "/api/admin/bugs": {
-      "post": {
-        "operationId": "createBug",
-        "summary": "File a bug report",
-        "description": "Files a bug into the queue and fires the project's connectors (GitHub issue / Slack). Returns the new id and per-project number.\n\n**Use case:** Report a defect programmatically so it lands in the same queue the dashboard shows.",
-        "tags": [
-          "Ops"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ProjectId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateBugRequest"
-              },
-              "example": {
-                "title": "Checkout button misaligned on mobile",
-                "body": "On iOS Safari the primary CTA overlaps the price.",
-                "priority": "high"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "File a bug report",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateBugResponse"
-                },
-                "example": {
-                  "id": "fb_01j7w8a1b2c3d4e5f6g7h8i9j0",
-                  "number": 7
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/UnprocessableEntity"
-          }
-        }
-      }
-    },
-    "/api/admin/feature-requests": {
-      "post": {
-        "operationId": "createFeatureRequest",
-        "summary": "File a feature request",
-        "description": "Files a feature request into the queue and fires the project's connectors. Returns the new id and per-project number.\n\n**Use case:** Capture a feature ask from an integration or a user-facing widget.",
-        "tags": [
-          "Ops"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ProjectId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateFeatureRequestRequest"
-              },
-              "example": {
-                "title": "Dark mode for the dashboard",
-                "body": "Add a theme toggle that persists per user.",
-                "priority": "nice_to_have"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "File a feature request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateFeatureRequestResponse"
-                },
-                "example": {
-                  "id": "fb_01j7w8a1b2c3d4e5f6g7h8i9k1",
-                  "number": 8
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/UnprocessableEntity"
-          }
-        }
-      }
-    },
-    "/api/admin/feedback/{handle}/link-pr": {
+    "/api/admin/ops/{handle}/link-pr": {
       "post": {
         "operationId": "linkPrToOpsItem",
         "summary": "Link a fixing PR",
@@ -4481,7 +4416,7 @@
             "name": "handle",
             "in": "path",
             "required": true,
-            "description": "Per-project item number (e.g. `7`) or the full feedback id.",
+            "description": "Per-project item number (e.g. `7`) or the full ops item id.",
             "schema": {
               "type": "string"
             }
@@ -11718,9 +11653,17 @@
         "additionalProperties": {},
         "description": "One queue item — any type."
       },
-      "CreateBugRequest": {
+      "CreateOpsItemRequest": {
         "type": "object",
         "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "bug",
+              "feature_request"
+            ],
+            "description": "Item type to file (`bug` or `feature_request`)."
+          },
           "title": {
             "type": "string",
             "minLength": 1,
@@ -11751,75 +11694,13 @@
           }
         },
         "required": [
+          "type",
           "title"
         ],
         "additionalProperties": false,
-        "description": "Body for `POST /api/admin/bugs`."
+        "description": "Body for `POST /api/admin/ops`. Files one queue item; `type` selects bug vs. feature request."
       },
-      "CreateBugResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Newly created item id."
-          },
-          "number": {
-            "description": "Per-project item number assigned to the new item.",
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id"
-        ],
-        "additionalProperties": false,
-        "description": "Response for the create endpoints."
-      },
-      "CreateFeatureRequestRequest": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "One-line title of the bug or feature request."
-          },
-          "body": {
-            "description": "Detailed description / steps to reproduce.",
-            "type": "string"
-          },
-          "priority": {
-            "description": "Initial triage priority.",
-            "type": "string",
-            "enum": [
-              "nice_to_have",
-              "medium",
-              "high",
-              "critical"
-            ]
-          },
-          "stepsToReproduce": {
-            "description": "Reproduction steps (bugs).",
-            "type": "string"
-          },
-          "pageUrl": {
-            "description": "URL of the page the item relates to.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title"
-        ],
-        "additionalProperties": false,
-        "description": "Body for `POST /api/admin/feature-requests`."
-      },
-      "CreateFeatureRequestResponse": {
+      "CreateOpsItemResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -11871,7 +11752,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Body for `PATCH /api/admin/feedback/{handle}`. Pass at least one of `status` / `priority`."
+        "description": "Body for `PATCH /api/admin/ops/{handle}`. Pass at least one of `status` / `priority`."
       },
       "UpdateOpsItemResponse": {
         "type": "object",
@@ -11913,7 +11794,7 @@
           "prNumber"
         ],
         "additionalProperties": false,
-        "description": "Body for `POST /api/admin/feedback/{handle}/link-pr`."
+        "description": "Body for `POST /api/admin/ops/{handle}/link-pr`."
       },
       "LinkPrToOpsItemResponse": {
         "type": "object",

@@ -5,8 +5,7 @@ import {
   opsStatusSchema,
   opsListResponseSchema,
   opsItemResponseSchema,
-  opsBugCreateSchema,
-  opsFeatureCreateSchema,
+  opsCreateSchema,
   opsUpdateSchema,
   opsLinkPrSchema,
   opsNotifySchema,
@@ -17,8 +16,8 @@ import {
 } from "../schemas/ops.js";
 
 /**
- * Operational queue — the unified feedback table of bug reports, feature
- * requests, and auto-filed error/alert tickets, over `/api/admin/feedback`.
+ * Operational queue — the unified table of bug reports, feature requests, and
+ * auto-filed error/alert tickets, over `/api/admin/ops`.
  * One resource covers list/get/create/update/link-pr plus the `notify`
  * escalation bell (`/api/admin/notifications`) and the Slack channel reader
  * (`/api/admin/slack/channels`) used to resolve alert-rule targets.
@@ -103,17 +102,11 @@ export interface OpsClient {
   channels(): Promise<SlackChannelsResponse>;
 }
 
-const FEEDBACK = "/api/admin/feedback";
+const OPS = "/api/admin/ops";
 const NOTIFY = "/api/admin/notifications";
 
-/** Bug/feature create endpoints are still per-type, even though list/get/update are unified. */
-const CREATE_PATH: Record<OpsCreateInput["type"], string> = {
-  bug: "/api/admin/bugs",
-  feature_request: "/api/admin/feature-requests",
-};
-
 function itemPath(handle: string): string {
-  return `${FEEDBACK}/${encodeURIComponent(handle)}`;
+  return `${OPS}/${encodeURIComponent(handle)}`;
 }
 
 export function opsClient(t: Transport): OpsClient {
@@ -123,11 +116,11 @@ export function opsClient(t: Transport): OpsClient {
       if (query.type) q.type = query.type;
       if (query.status) q.status = query.status;
       if (query.limit !== undefined) q.limit = String(query.limit);
-      return t.request<OpsItem[]>("GET", FEEDBACK, undefined, q);
+      return t.request<OpsItem[]>("GET", OPS, undefined, q);
     },
     get: (handle) => t.request<OpsItem>("GET", itemPath(handle)),
     create: ({ type, ...body }) =>
-      t.request<{ id: string; number?: number | null }>("POST", CREATE_PATH[type], body),
+      t.request<{ id: string; number?: number | null }>("POST", OPS, { type, ...body }),
     update: (handle, input) => t.request<{ id: string }>("PATCH", itemPath(handle), input),
     linkPr: (handle, input) =>
       t.request<{ id: string }>("POST", `${itemPath(handle)}/link-pr`, input),
@@ -145,20 +138,21 @@ export function opsClient(t: Transport): OpsClient {
 
 export const opsResource = {
   name: "ops" as const,
-  // The ops surface spans several top-level paths (/feedback, /bugs,
-  // /feature-requests, /notifications, /slack/channels), so the basePath is the
-  // admin root and each endpoint carries its full relative path.
+  // The ops surface spans several top-level paths (/ops, /notifications,
+  // /slack/channels), so the basePath is the admin root and each endpoint
+  // carries its full relative path.
   basePath: "/api/admin",
   describeOne: "queue item",
   describeMany: "queue items",
   tag: {
     name: "Ops",
     description: [
-      "Operational queue: the unified feedback table of bug reports, feature",
-      "requests, and auto-filed error/alert tickets. List/get/update are unified",
-      "over `/feedback`; bug vs. feature creates are per-type. Also exposes the",
-      "`notify` escalation bell and the read-only Slack-channels list used to",
-      "resolve alert-rule notification targets.",
+      "Operational queue: the unified table of bug reports, feature requests, and",
+      "auto-filed error/alert tickets, all over `/api/admin/ops`. One `create`",
+      "endpoint files either user type (`type: bug | feature_request`); list, get,",
+      "update, and link-pr are unified across every type. Also exposes the `notify`",
+      "escalation bell and the read-only Slack-channels list used to resolve",
+      "alert-rule notification targets.",
       "",
       "**Handles.** A queue item is addressed by its per-project `number` (e.g. `7`)",
       "or its full id — the API resolves either.",
@@ -170,10 +164,10 @@ export const opsResource = {
     {
       operationId: "listOpsItems",
       method: "GET",
-      path: "/feedback",
+      path: "/ops",
       summary: "List the operational queue",
       description:
-        "Returns the unified feedback queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.",
+        "Returns the unified ops queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.",
       queryParams: {
         type: {
           schema: opsTypeSchema.or(z.literal("all")).optional(),
@@ -208,10 +202,10 @@ export const opsResource = {
     {
       operationId: "getOpsItem",
       method: "GET",
-      path: "/feedback/{handle}",
+      path: "/ops/{handle}",
       summary: "Get one queue item",
       description: "Fetch a single queue item by its per-project `number` or full id.",
-      pathParams: { handle: "Per-project item number (e.g. `7`) or the full feedback id." },
+      pathParams: { handle: "Per-project item number (e.g. `7`) or the full ops item id." },
       response: opsItemResponseSchema,
       examples: {
         response: {
@@ -227,52 +221,33 @@ export const opsResource = {
       useCase: "Inspect one item's full detail before updating its status or linking a PR.",
     },
     {
-      operationId: "createBug",
+      operationId: "createOpsItem",
       method: "POST",
-      path: "/bugs",
-      summary: "File a bug report",
+      path: "/ops",
+      summary: "File a queue item",
       description:
-        "Files a bug into the queue and fires the project's connectors (GitHub issue / Slack). Returns the new id and per-project number.",
+        "Files one queue item — a bug report or a feature request — and fires the project's connectors (GitHub issue / Slack). `type` selects which; only the two user-fileable types are accepted (`error`/`alert` tickets are auto-filed). Returns the new id and per-project number.",
       successStatus: 201,
-      request: opsBugCreateSchema,
+      request: opsCreateSchema,
       response: opsCreateResponseSchema,
       examples: {
         request: {
+          type: "bug",
           title: "Checkout button misaligned on mobile",
           body: "On iOS Safari the primary CTA overlaps the price.",
           priority: "high",
         },
         response: { id: "fb_01j7w8a1b2c3d4e5f6g7h8i9j0", number: 7 },
       },
-      useCase: "Report a defect programmatically so it lands in the same queue the dashboard shows.",
-    },
-    {
-      operationId: "createFeatureRequest",
-      method: "POST",
-      path: "/feature-requests",
-      summary: "File a feature request",
-      description:
-        "Files a feature request into the queue and fires the project's connectors. Returns the new id and per-project number.",
-      successStatus: 201,
-      request: opsFeatureCreateSchema,
-      response: opsCreateResponseSchema,
-      examples: {
-        request: {
-          title: "Dark mode for the dashboard",
-          body: "Add a theme toggle that persists per user.",
-          priority: "nice_to_have",
-        },
-        response: { id: "fb_01j7w8a1b2c3d4e5f6g7h8i9k1", number: 8 },
-      },
-      useCase: "Capture a feature ask from an integration or a user-facing widget.",
+      useCase: "File a bug or feature request programmatically so it lands in the same queue the dashboard shows.",
     },
     {
       operationId: "updateOpsItem",
       method: "PATCH",
-      path: "/feedback/{handle}",
+      path: "/ops/{handle}",
       summary: "Update a queue item",
       description: "Update a queue item's `status` and/or `priority`. Other fields are immutable.",
-      pathParams: { handle: "Per-project item number (e.g. `7`) or the full feedback id." },
+      pathParams: { handle: "Per-project item number (e.g. `7`) or the full ops item id." },
       request: opsUpdateSchema,
       response: opsUpdateResponseSchema,
       examples: {
@@ -284,11 +259,11 @@ export const opsResource = {
     {
       operationId: "linkPrToOpsItem",
       method: "POST",
-      path: "/feedback/{handle}/link-pr",
+      path: "/ops/{handle}/link-pr",
       summary: "Link a fixing PR",
       description:
         "Record the pull request that fixes a queue item (and clears the link with `prNumber: null`).",
-      pathParams: { handle: "Per-project item number (e.g. `7`) or the full feedback id." },
+      pathParams: { handle: "Per-project item number (e.g. `7`) or the full ops item id." },
       request: opsLinkPrSchema,
       response: opsUpdateResponseSchema,
       examples: {

@@ -56,12 +56,16 @@ export const opsListResponseSchema = z
   .array(opsItemResponseSchema)
   .describe("A page of queue items, newest first.");
 
-// ── Create (bug / feature request) ───────────────────────────────────────────
+// ── Create (unified bug / feature request) ───────────────────────────────────
 //
-// Models OpsCreateInput minus the `type` discriminator (the type is encoded in
-// the endpoint path: POST /bugs vs POST /feature-requests).
+// One create body over `POST /api/admin/ops`; `type` selects bug vs. feature
+// request (the two user-fileable types — `error`/`alert` tickets are auto-filed
+// and cannot be created over the API).
 export const opsCreateSchema = z
   .object({
+    type: z
+      .enum(["bug", "feature_request"])
+      .describe("Item type to file (`bug` or `feature_request`)."),
     title: z.string().min(1).max(200).describe("One-line title of the bug or feature request."),
     body: z
       .string()
@@ -77,14 +81,7 @@ export const opsCreateSchema = z
       .optional()
       .describe("URL of the page the item relates to."),
   })
-  .describe("Body for `POST /api/admin/bugs` and `POST /api/admin/feature-requests`.");
-
-// Distinct exports so the docs can label each create endpoint, but both share
-// the same shape.
-export const opsBugCreateSchema = opsCreateSchema.describe("Body for `POST /api/admin/bugs`.");
-export const opsFeatureCreateSchema = opsCreateSchema.describe(
-  "Body for `POST /api/admin/feature-requests`.",
-);
+  .describe("Body for `POST /api/admin/ops`. Files one queue item; `type` selects bug vs. feature request.");
 
 // ── Update (cross-type status/priority PATCH) ────────────────────────────────
 export const opsUpdateSchema = z
@@ -93,7 +90,7 @@ export const opsUpdateSchema = z
     priority: opsPrioritySchema.optional().describe("New triage priority."),
   })
   .describe(
-    "Body for `PATCH /api/admin/feedback/{handle}`. Pass at least one of `status` / `priority`.",
+    "Body for `PATCH /api/admin/ops/{handle}`. Pass at least one of `status` / `priority`.",
   );
 
 // ── Link PR ──────────────────────────────────────────────────────────────────
@@ -113,7 +110,7 @@ export const opsLinkPrSchema = z
         "Explicit PR URL. Required for error/alert tickets (no GitHub issue to derive the URL from).",
       ),
   })
-  .describe("Body for `POST /api/admin/feedback/{handle}/link-pr`.");
+  .describe("Body for `POST /api/admin/ops/{handle}/link-pr`.");
 
 // ── Notify (ops.attention escalation bell) ───────────────────────────────────
 export const opsNotifySchema = z
