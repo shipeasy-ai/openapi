@@ -14,6 +14,7 @@ import { configsResource } from "../src/resources/configs.js";
 import { experimentsResource } from "../src/resources/experiments.js";
 import { universesResource } from "../src/resources/universes.js";
 import { killswitchesResource } from "../src/resources/killswitches.js";
+import { attributesResource } from "../src/resources/attributes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,6 +39,7 @@ const doc = buildOpenApi({
     configsResource,
     killswitchesResource,
     universesResource,
+    attributesResource,
   ],
 });
 

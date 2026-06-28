@@ -43,6 +43,10 @@
     {
       "name": "Universes",
       "description": "Universes: the shared bucketing space all experiments draw from.\n\n**Identity.** Each universe is keyed by a stable `name` (a-z, 0-9, `_`/`-`, max 64 chars). Experiments reference it via `universe: '<name>'`. The name is immutable.\n\n**Unit of randomisation.** `unit_type` selects the attribute hashed into a 0–9999 bucket — default `user_id` for per-user randomisation, `account_id` to keep a whole account in the same group.\n\n**Holdout.** `holdout_range` is an inclusive `[lo, hi]` bucket range (0–9999) reserved for measurement — callers hashed into the holdout are excluded from every experiment in the universe. Pro plan or higher.\n\n**Deletion.** Blocked while any non-archived experiment references the universe — archive those first."
+    },
+    {
+      "name": "Attributes",
+      "description": "Targeting attributes: the auto-inferred schema of user-context keys the\nplatform has observed in evaluation calls. Read-only — populated by the\nSDK hot path, surfaced here so you can see which keys (and value types)\nare available when writing gate/experiment targeting rules."
     }
   ],
   "paths": {
@@ -3253,6 +3257,65 @@
                 "example": {
                   "ok": true
                 }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          }
+        }
+      }
+    },
+    "/api/admin/attributes": {
+      "get": {
+        "operationId": "listAttributes",
+        "summary": "List targeting attributes",
+        "description": "Returns every auto-inferred targeting attribute in the project — the `name` and (when known) the value `type` — for building gate/experiment targeting rules.\n\n**Use case:** Discover which user-context keys are available before authoring a targeting rule, instead of guessing attribute names.",
+        "tags": [
+          "Attributes"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List targeting attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAttributesResponse"
+                },
+                "example": [
+                  {
+                    "name": "plan",
+                    "type": "string"
+                  },
+                  {
+                    "name": "country",
+                    "type": "string"
+                  },
+                  {
+                    "name": "seats",
+                    "type": "number"
+                  }
+                ]
               }
             }
           },
@@ -7275,6 +7338,28 @@
           "ok"
         ],
         "additionalProperties": false
+      },
+      "ListAttributesResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Attribute key as seen in evaluation context (e.g. `plan`, `country`)."
+            },
+            "type": {
+              "description": "Inferred value type (`string`, `number`, `boolean`, …) when known.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": {},
+          "description": "One auto-inferred targeting attribute."
+        },
+        "description": "Every auto-inferred targeting attribute in the project."
       }
     },
     "parameters": {
