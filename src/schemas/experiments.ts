@@ -2,21 +2,97 @@ import { z } from "zod";
 import { folderSchema } from "./folder";
 import { metricNameSchema } from "./metric-name";
 
-// Inline metric attachment by DSL string. Used on experiment create/update so callers
-// can declare a goal + guardrails in one shot. Each entry compiles via @shipeasy/query-dsl,
-// upserts the underlying event (if missing), upserts the metric, and attaches it with
-// the named role. `name` is optional — when omitted the handler derives a stable slug
-// from the event + agg kind so the same query re-runs are idempotent.
-export const experimentInlineMetricSchema = z.object({
-  name: metricNameSchema.optional(),
-  query: z
-    .string()
-    .min(1)
-    .max(4096)
-    .describe("Metric DSL string, e.g. `count_users(checkout_completed)`."),
-});
+// Reducer for the friendlier event-based inline-metric form (`event` + this).
+// Mirrors the aggregations the metric DSL exposes; the server compiles the pair
+// into a DSL query (see `inlineMetricQuery`). `sum`/`avg` additionally need a
+// numeric `value` (the event property to reduce over).
+export const inlineMetricAggregationSchema = z
+  .enum(["count_users", "count_events", "retention_7d", "retention_30d", "sum", "avg"])
+  .describe(
+    "Reducer for the `event` form. `count_users`/`count_events`/`retention_Nd` need only the event; `sum`/`avg` also need `value`.",
+  );
+
+// Inline metric attachment. Used on experiment create/update so callers can declare
+// a goal + guardrails in one shot. Two interchangeable forms:
+//   • `query` — a raw metric DSL string (e.g. `count_users(checkout_completed)`).
+//   • `event` (+ optional `aggregation`/`value`) — the friendlier form the server
+//     compiles into a DSL query (`inlineMetricQuery`), so every SDK gets the
+//     ergonomics the CLI/MCP used to apply client-side (retired `buildGoalMetric`).
+// Either way the underlying event is auto-created if missing, the metric upserted,
+// and attached with the named role. `name` is optional — when omitted the handler
+// derives a stable slug from the event + agg kind so re-runs are idempotent.
+export const experimentInlineMetricSchema = z
+  .object({
+    name: metricNameSchema.optional(),
+    query: z
+      .string()
+      .min(1)
+      .max(4096)
+      .optional()
+      .describe(
+        "Metric DSL string, e.g. `count_users(checkout_completed)`. Provide this OR `event`.",
+      ),
+    event: z
+      .string()
+      .min(1)
+      .max(256)
+      .optional()
+      .describe(
+        "Event name to build the metric from server-side (friendlier alternative to `query`). Auto-created if missing.",
+      ),
+    aggregation: inlineMetricAggregationSchema
+      .optional()
+      .describe("Reducer for the `event` form. Defaults to `count_users`."),
+    value: z
+      .string()
+      .min(1)
+      .max(256)
+      .optional()
+      .describe("Numeric event property for `sum`/`avg` aggregations (with `event`)."),
+  })
+  .refine((m) => !!m.query || !!m.event, {
+    message: "provide either `query` or `event`",
+  })
+  .refine((m) => !(m.event && (m.aggregation === "sum" || m.aggregation === "avg")) || !!m.value, {
+    message: "aggregation 'sum'/'avg' requires `value` — the numeric event property to reduce over",
+  })
+  .describe(
+    "Inline metric: either a DSL `query`, or an `event` (+ `aggregation`/`value`) the server compiles into one.",
+  );
 
 export type ExperimentInlineMetric = z.infer<typeof experimentInlineMetricSchema>;
+
+/**
+ * Compile an inline metric to its DSL query string — the server-side home of the
+ * goal-metric construction that the CLI/MCP registry used to do client-side
+ * (`buildGoalMetric`). Returns `query` verbatim when given the raw form; builds
+ * `<agg>(<event>[, <value>])` from the friendlier `event` form. Callers pass the
+ * already-validated schema output, so the `sum`/`avg`-needs-`value` invariant is
+ * guaranteed by the schema refine; the throw here is a defensive backstop.
+ */
+export function inlineMetricQuery(m: ExperimentInlineMetric): string {
+  if (m.query) return m.query;
+  const event = m.event;
+  if (!event) throw new Error("inline metric needs either `query` or `event`");
+  const agg = m.aggregation ?? "count_users";
+  switch (agg) {
+    case "count_users":
+      return `count_users(${event})`;
+    case "count_events":
+      return `count(${event})`;
+    case "retention_7d":
+      return `retention_7d(${event})`;
+    case "retention_30d":
+      return `retention_30d(${event})`;
+    case "sum":
+    case "avg":
+      if (!m.value)
+        throw new Error(`aggregation '${agg}' requires \`value\` (e.g. "amount")`);
+      return `${agg}(${event}, ${m.value})`;
+    default:
+      throw new Error(`unknown aggregation '${agg as string}'`);
+  }
+}
 
 export const experimentNameSchema = z
   .string()
@@ -178,7 +254,7 @@ export const experimentCreateSchema = z
     goal_metric: experimentInlineMetricSchema
       .optional()
       .describe(
-        "Single goal metric defined inline as a DSL query. The underlying event is auto-created if missing.",
+        "Single goal metric defined inline — either a DSL `query` or an `event` (+`aggregation`/`value`) the server compiles. Attaching one is required before the experiment can be started. The underlying event is auto-created if missing.",
       ),
     guardrail_metrics: z
       .array(experimentInlineMetricSchema)
@@ -243,7 +319,9 @@ export const experimentUpdateSchema = z
     sequential_testing: z.boolean().optional(),
     goal_metric: experimentInlineMetricSchema
       .optional()
-      .describe("Replaces the goal metric (event auto-upserted)."),
+      .describe(
+        "Replaces the goal metric — DSL `query` or `event` (+`aggregation`/`value`) the server compiles (event auto-upserted).",
+      ),
     guardrail_metrics: z
       .array(experimentInlineMetricSchema)
       .max(10)
