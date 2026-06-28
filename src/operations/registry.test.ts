@@ -79,12 +79,15 @@ describe("sibling facade→wire mappings", () => {
       },
       experiments: {
         create: vi.fn().mockResolvedValue({ id: "exp_1" }),
-        resolve: vi.fn().mockResolvedValue({ id: "exp_1", name: "p" }),
+        update: vi.fn().mockResolvedValue({ id: "exp_1" }),
         restore: vi.fn().mockResolvedValue({ id: "exp_1", status: "draft" }),
-        get: vi
-          .fn()
-          .mockResolvedValue({ id: "exp_1", name: "p", status: "running", significance_threshold: 0.05 }),
-        results: vi.fn().mockResolvedValue([{ group_name: "test", p_value: 0.01, srm_detected: 0 }]),
+        // `/results` now carries the server-computed verdict; the status op is a
+        // pure pass-through of this bundle.
+        results: vi.fn().mockResolvedValue({
+          experiment: { id: "exp_1", name: "p", status: "running" },
+          results: [],
+          verdict: "ship",
+        }),
       },
       universes: {
         create: vi.fn().mockResolvedValue({ id: "uni_1" }),
@@ -123,24 +126,28 @@ describe("sibling facade→wire mappings", () => {
     expect(c.configs.saveDraft).toHaveBeenCalledWith("cfg_1", { env: "prod", value: { days: 30 } });
   });
 
-  it("experiment create: allocation% → basis points, defaults applied", async () => {
+  it("experiment create: forwards allocation as percent (server converts to bp)", async () => {
+    // Pass-through: the registry forwards `allocation_percent` (0–100); the
+    // server does the %→basis-points conversion (was Math.round(pct*100) here).
     const c = client();
     const d = operationsToDispatch(ALL_OPERATIONS);
     await d.release_experiments_create(c, { name: "p", allocation: 50 });
     expect(c.experiments.create).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "p", universe: "default", allocation_pct: 5000 }),
+      expect.objectContaining({ name: "p", universe: "default", allocation_percent: 50 }),
     );
   });
 
-  it("experiment restore: resolves name then restores by id (archived → draft)", async () => {
+  it("experiment restore: passes the name through (server resolves name-or-id)", async () => {
     const c = client();
     const d = operationsToDispatch(ALL_OPERATIONS);
     await d.release_experiments_restore(c, { name: "p" });
-    expect(c.experiments.resolve).toHaveBeenCalledWith("p");
-    expect(c.experiments.restore).toHaveBeenCalledWith("exp_1");
+    // No client-side resolve() — the {id} route accepts the name directly.
+    expect(c.experiments.restore).toHaveBeenCalledWith("p");
   });
 
-  it("experiment create: builds an inline goal metric from successEvent", async () => {
+  it("experiment create: forwards the goal metric in event form (server compiles DSL)", async () => {
+    // Pass-through: the successEvent/Aggregation/Value trio is forwarded as the
+    // server's inline event form; the server builds the DSL (was buildGoalMetric).
     const c = client();
     const d = operationsToDispatch(ALL_OPERATIONS);
     await d.release_experiments_create(c, {
@@ -150,14 +157,18 @@ describe("sibling facade→wire mappings", () => {
       successValue: "amount",
     });
     expect(c.experiments.create).toHaveBeenCalledWith(
-      expect.objectContaining({ goal_metric: { query: "sum(purchase, amount)" } }),
+      expect.objectContaining({
+        goal_metric: { event: "purchase", aggregation: "sum", value: "amount" },
+      }),
     );
   });
 
-  it("experiment status: returns a ship verdict when p < threshold", async () => {
+  it("experiment status: passes through the server verdict from /results", async () => {
     const c = client();
     const d = operationsToDispatch(ALL_OPERATIONS);
     const out = (await d.release_experiments_status(c, { name: "p" })) as { verdict: string };
+    // The verdict is the server's, read off the results bundle (was computeVerdict).
+    expect(c.experiments.results).toHaveBeenCalledWith("p");
     expect(out.verdict).toBe("ship");
   });
 

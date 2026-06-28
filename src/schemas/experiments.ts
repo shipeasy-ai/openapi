@@ -435,6 +435,11 @@ export const experimentResultsResponseSchema = z.object({
     status: z.enum(["draft", "running", "stopped", "archived"]),
   }),
   results: z.array(experimentResultRowSchema),
+  verdict: z
+    .enum(["ship", "hold", "wait", "invalid", "draft"])
+    .describe(
+      "Server-computed decision from the goal metric + guardrails + SRM vs. the significance threshold and min runtime: `ship` (goal significant + guardrails pass), `hold` (a guardrail regressed), `wait` (inconclusive / under-powered), `invalid` (sample-ratio mismatch), `draft` (never started).",
+    ),
 });
 
 export const experimentTimeseriesResponseSchema = z.object({

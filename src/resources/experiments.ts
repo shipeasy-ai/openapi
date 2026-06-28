@@ -62,6 +62,17 @@ export interface ExperimentTimeseriesPoint {
   value: number | null;
 }
 
+/** Verdict the server computes from the goal + guardrails + SRM. */
+export type ExperimentVerdict = "ship" | "hold" | "wait" | "invalid" | "draft";
+
+/** `GET /{id}/results` response — latest analysis rows plus the server-computed
+ *  ship/hold/wait verdict (the decision policy now lives behind the API). */
+export interface ExperimentResultsBundle {
+  experiment: { id: string; name: string; status: string };
+  results: ExperimentResult[];
+  verdict: ExperimentVerdict;
+}
+
 export type ExperimentStatus = "draft" | "running" | "stopped" | "archived";
 
 export interface ExperimentMetricsInput {
@@ -83,7 +94,7 @@ export interface ExperimentsClient {
   /** Restore a soft-deleted (archived) experiment back to `draft`. */
   restore(id: string): Promise<Experiment>;
   setMetrics(id: string, input: ExperimentMetricsInput): Promise<unknown>;
-  results(id: string): Promise<ExperimentResult[]>;
+  results(id: string): Promise<ExperimentResultsBundle>;
   timeseries(id: string, metric?: string): Promise<ExperimentTimeseriesPoint[]>;
   reanalyze(id: string): Promise<{ ok: true }>;
 }
@@ -155,7 +166,7 @@ export function experimentsClient(t: Transport): ExperimentsClient {
     restore: (id) => setStatus(id, "draft"),
     setMetrics: (id, input) =>
       t.request("POST", `${BASE}/${id}/metrics`, experimentMetricsUpdateSchema.parse(input)),
-    results: (id) => t.request<ExperimentResult[]>("GET", `${BASE}/${id}/results`),
+    results: (id) => t.request<ExperimentResultsBundle>("GET", `${BASE}/${id}/results`),
     timeseries: (id, metric) =>
       t.request<ExperimentTimeseriesPoint[]>(
         "GET",
@@ -533,6 +544,7 @@ export const experimentsResource = {
               srm_detected: 0,
             },
           ],
+          verdict: "ship",
         },
       },
       useCase:

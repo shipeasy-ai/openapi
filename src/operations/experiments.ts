@@ -1,5 +1,4 @@
 import type { AdminClient } from "../resources/index.js";
-import type { Experiment, ExperimentResult } from "../resources/experiments.js";
 import type { Operation, OpInput } from "./types.js";
 import { bool, num, str } from "./util.js";
 
@@ -7,11 +6,18 @@ import { bool, num, str } from "./util.js";
  * Experiment operations — `release experiments …`. The single definition behind
  * both `cli/src/commands/release.ts` and the MCP `release_experiments_*` tools.
  *
- * This op carries the FULL experiment surface, including everything that used to
- * be MCP-only: the inline goal-metric DSL (`successEvent`/`successAggregation`/
- * `successValue`), guardrail metrics, `bucketBy`, sequential testing, and the
- * ship/hold/wait verdict on `status`. Nothing is hand-written in the consumers
- * anymore.
+ * As of the operations/ deprecation (Phase 1) these `run()`s are **pass-through**:
+ * the facade→wire work the registry used to do client-side now lives behind the
+ * REST API, so every generated SDK gets the same ergonomics, not just TS:
+ *   • goal metric — the `successEvent`/`successAggregation`/`successValue` trio is
+ *     forwarded as `goal_metric: {event,aggregation,value}` and the server
+ *     compiles the DSL (was `buildGoalMetric`).
+ *   • allocation — forwarded as `allocation_percent` (0–100); the server converts
+ *     to basis points (was `Math.round(pct*100)`).
+ *   • name-or-id — every `{id}` route accepts the experiment name, so the ops
+ *     pass the name straight through (was a client-side `resolve()` round-trip).
+ *   • verdict — `status` reads the server-computed verdict off `/results` (was
+ *     `computeVerdict`).
  *
  * Note: the CLI had both `delete` (hard) and `archive` (soft). Per the
  * registry-wide `delete`→`archive` convention, only `archive` is exposed; the
@@ -35,45 +41,31 @@ const AGGREGATIONS = [
 ] as const;
 
 /**
- * Build the inline goal-metric query (metric DSL) the admin API auto-upserts on
- * create/update and attaches with role=goal — which is what makes a draft
- * startable. `count`/`count_users`/`retention_Nd` need only the event; `sum`/
- * `avg` also need `successValue` (the numeric event property to reduce over).
- * (count_events renders as `count(...)`.)
+ * Forward the `successEvent`(+`successAggregation`/`successValue`) facade trio as
+ * the server's inline `goal_metric` event form — the server compiles it into a
+ * DSL query and auto-upserts the event/metric. Returns undefined when no event
+ * was supplied (nothing to attach).
  */
-function buildGoalMetric(i: OpInput): { query: string } | undefined {
+function goalMetricInput(i: OpInput): { event: string; aggregation?: string; value?: string } | undefined {
   const event = str(i, "successEvent");
   if (!event) return undefined;
-  const agg = str(i, "successAggregation") ?? "count_users";
+  const aggregation = str(i, "successAggregation");
   const value = str(i, "successValue");
-  switch (agg) {
-    case "count_users":
-      return { query: `count_users(${event})` };
-    case "count_events":
-      return { query: `count(${event})` };
-    case "retention_7d":
-      return { query: `retention_7d(${event})` };
-    case "retention_30d":
-      return { query: `retention_30d(${event})` };
-    case "sum":
-    case "avg":
-      if (!value)
-        throw new Error(
-          `successAggregation '${agg}' requires successValue — the numeric event property to ${agg} (e.g. "amount")`,
-        );
-      return { query: `${agg}(${event}, ${value})` };
-    default:
-      throw new Error(`Unknown successAggregation '${agg}'`);
-  }
+  return {
+    event,
+    ...(aggregation ? { aggregation } : {}),
+    ...(value ? { value } : {}),
+  };
 }
 
 /**
- * Parse the `guardrailMetrics` facade arg — a JSON array of metric-DSL query
- * strings or `{ query, name }` objects — into the inline-metric shape the admin
- * API upserts and attaches with role=guardrail. Already JSON-parsed by the
- * framework (param type `json`); tolerates a non-array (→ no guardrails).
+ * Normalize the `guardrailMetrics` facade arg — a JSON array of metric-DSL query
+ * strings or `{ query, name }` objects — into the server's inline-metric array
+ * (each entry `{ query, name? }`). Already JSON-parsed by the framework (param
+ * type `json`); tolerates a non-array (→ no guardrails). The server upserts each
+ * and attaches it with role=guardrail.
  */
-function parseGuardrails(raw: unknown): { query: string; name?: string }[] {
+function guardrailMetricsInput(raw: unknown): { query: string; name?: string }[] {
   if (!Array.isArray(raw)) return [];
   const out: { query: string; name?: string }[] = [];
   for (const entry of raw) {
@@ -88,34 +80,6 @@ function parseGuardrails(raw: unknown): { query: string; name?: string }[] {
     }
   }
   return out;
-}
-
-/**
- * Compute a ship / hold / wait / not_running / invalid_srm verdict from the
- * latest results — the decision helper the MCP `exp_experiment_status` tool
- * used to own. Returned alongside the raw experiment + results so the CLI can
- * render its table and the MCP envelope carries the verdict.
- */
-function computeVerdict(
-  detail: Experiment,
-  results: ExperimentResult[],
-): { verdict: string; reason?: string } {
-  if (results.some((r) => r.srm_detected === 1))
-    return { verdict: "invalid_srm", reason: "sample-ratio mismatch detected" };
-  if (detail.status !== "running") return { verdict: "not_running", reason: `status=${detail.status}` };
-  if (!results.length) return { verdict: "wait", reason: "no data yet" };
-  const withP = results.filter((r) => r.p_value !== null) as (ExperimentResult & { p_value: number })[];
-  if (!withP.length) return { verdict: "wait", reason: "no p-values yet" };
-  const best = withP.reduce((a, b) => (a.p_value < b.p_value ? a : b));
-  const threshold = detail.significance_threshold ?? 0.05;
-  if (best.p_value < threshold) return { verdict: "ship" };
-  const startedAt = detail.startedAt ?? detail.started_at;
-  const daysRunning = startedAt
-    ? (Date.now() - new Date(startedAt).getTime()) / (1000 * 60 * 60 * 24)
-    : 0;
-  return daysRunning < (detail.min_runtime_days ?? 0)
-    ? { verdict: "wait", reason: "min runtime not reached" }
-    : { verdict: "hold" };
 }
 
 export const experimentOperations: Operation[] = [
@@ -167,12 +131,13 @@ export const experimentOperations: Operation[] = [
       },
     ],
     run: (client: AdminClient, i: OpInput) => {
-      const goal_metric = buildGoalMetric(i);
-      const guardrail_metrics = parseGuardrails(i.guardrailMetrics);
+      const goal_metric = goalMetricInput(i);
+      const guardrail_metrics = guardrailMetricsInput(i.guardrailMetrics);
       return client.experiments.create({
         name: i.name as string,
         universe: str(i, "universe") ?? "default",
-        allocation_pct: Math.round((num(i, "allocation") ?? 100) * 100),
+        // Forward percent; the server converts to basis points.
+        allocation_percent: num(i, "allocation") ?? 100,
         groups: (i.groups as never) ?? DEFAULT_GROUPS,
         params: (i.params as never) ?? {},
         targeting_gate: (str(i, "targetingGate") ?? null) as never,
@@ -217,10 +182,10 @@ export const experimentOperations: Operation[] = [
       { note: "Clear targeting + tighten significance", run: "shipeasy release experiments update checkout-cta --targeting-gate null --significance 0.01" },
     ],
     run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
       const patch: Record<string, unknown> = {};
       const allocation = num(i, "allocation");
-      if (allocation !== undefined) patch.allocation_pct = Math.round(allocation * 100);
+      // Forward percent; the server converts to basis points.
+      if (allocation !== undefined) patch.allocation_percent = allocation;
       if (i.groups !== undefined) patch.groups = i.groups;
       if (i.params !== undefined) patch.params = i.params;
       if (i.targetingGate !== undefined)
@@ -230,11 +195,13 @@ export const experimentOperations: Operation[] = [
       if (i.minRuntimeDays !== undefined) patch.min_runtime_days = i.minRuntimeDays;
       if (i.minSampleSize !== undefined) patch.min_sample_size = i.minSampleSize;
       if (bool(i, "sequentialTesting") !== undefined) patch.sequential_testing = bool(i, "sequentialTesting");
-      if (i.guardrailMetrics !== undefined) patch.guardrail_metrics = parseGuardrails(i.guardrailMetrics);
+      if (i.guardrailMetrics !== undefined)
+        patch.guardrail_metrics = guardrailMetricsInput(i.guardrailMetrics);
       // Attach/replace the goal metric so a draft missing one can be made startable.
-      const goal_metric = buildGoalMetric(i);
+      const goal_metric = goalMetricInput(i);
       if (goal_metric) patch.goal_metric = goal_metric;
-      return client.experiments.update(e.id, patch);
+      // The {id} path param accepts the name — no client-side resolve().
+      return client.experiments.update(i.name as string, patch);
     },
   },
   {
@@ -245,10 +212,7 @@ export const experimentOperations: Operation[] = [
     description: "Move an experiment from draft to running.",
     params: [{ name: "name", type: "string", description: "Experiment name.", required: true, positional: true }],
     examples: [{ run: "shipeasy release experiments start pricing-page" }],
-    run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
-      return client.experiments.start(e.id);
-    },
+    run: (client: AdminClient, i: OpInput) => client.experiments.start(i.name as string),
   },
   {
     group: GROUP,
@@ -264,14 +228,14 @@ export const experimentOperations: Operation[] = [
     ],
     examples: [{ run: "shipeasy release experiments stop pricing-page" }],
     run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
-      const result = await client.experiments.stop(e.id);
+      const name = i.name as string;
+      const result = await client.experiments.stop(name);
       const promote = str(i, "promoteGroup");
       return {
         ...(result as object),
         ...(promote
           ? {
-              promote_group_note: `Manual promotion needed: promote group '${promote}' in the dashboard or via PATCH /api/admin/experiments/${e.id}.`,
+              promote_group_note: `Manual promotion needed: promote group '${promote}' in the dashboard or via PATCH /api/admin/experiments/${name}.`,
             }
           : {}),
       };
@@ -285,10 +249,7 @@ export const experimentOperations: Operation[] = [
     description: "Archive (soft-delete) a stopped experiment, hiding it from the default list while preserving results.",
     params: [{ name: "name", type: "string", description: "Experiment name.", required: true, positional: true }],
     examples: [{ run: "shipeasy release experiments archive pricing-page" }],
-    run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
-      return client.experiments.archive(e.id);
-    },
+    run: (client: AdminClient, i: OpInput) => client.experiments.archive(i.name as string),
   },
   {
     group: GROUP,
@@ -299,10 +260,7 @@ export const experimentOperations: Operation[] = [
       "Restore a soft-deleted (archived) experiment back to `draft`. Allowed only if it never started; one that already ran must be cloned instead. Preserves the goal metric.",
     params: [{ name: "name", type: "string", description: "Experiment name.", required: true, positional: true }],
     examples: [{ run: "shipeasy release experiments restore pricing-page" }],
-    run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
-      return client.experiments.restore(e.id);
-    },
+    run: (client: AdminClient, i: OpInput) => client.experiments.restore(i.name as string),
   },
   {
     group: GROUP,
@@ -312,10 +270,7 @@ export const experimentOperations: Operation[] = [
     description: "Trigger a fresh analysis pass for an experiment.",
     params: [{ name: "name", type: "string", description: "Experiment name.", required: true, positional: true }],
     examples: [{ run: "shipeasy release experiments reanalyze pricing-page" }],
-    run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
-      return client.experiments.reanalyze(e.id);
-    },
+    run: (client: AdminClient, i: OpInput) => client.experiments.reanalyze(i.name as string),
   },
   {
     group: GROUP,
@@ -323,17 +278,13 @@ export const experimentOperations: Operation[] = [
     mutates: false,
     summary: "Show experiment status, verdict, and latest results",
     description:
-      "Return the experiment, its latest per-metric results (enrolment, deltas, p-values), and a " +
-      "ship/hold/wait/not_running/invalid_srm verdict computed from the goal metric vs the " +
-      "significance threshold and minimum runtime.",
+      "Return the experiment, its latest per-metric results (enrolment, deltas, p-values), and the " +
+      "server-computed ship/hold/wait/invalid/draft verdict (from the goal metric + guardrails + " +
+      "SRM vs. the significance threshold and minimum runtime).",
     params: [{ name: "name", type: "string", description: "Experiment name.", required: true, positional: true }],
     examples: [{ run: "shipeasy release experiments status pricing-page" }],
-    run: async (client: AdminClient, i: OpInput) => {
-      const e = await client.experiments.resolve(i.name as string);
-      const detail = await client.experiments.get(e.id).catch(() => e);
-      const results = await client.experiments.results(e.id).catch(() => [] as ExperimentResult[]);
-      const { verdict, reason } = computeVerdict(detail, results);
-      return { verdict, ...(reason ? { reason } : {}), experiment: detail, results };
-    },
+    // Pass-through: the {id} route accepts the name and `/results` already carries
+    // the verdict + experiment + rows (server owns the policy — was computeVerdict).
+    run: (client: AdminClient, i: OpInput) => client.experiments.results(i.name as string),
   },
 ];

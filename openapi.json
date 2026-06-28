@@ -1346,7 +1346,8 @@
                       "p_value": 0.018,
                       "srm_detected": 0
                     }
-                  ]
+                  ],
+                  "verdict": "ship"
                 }
               }
             }
@@ -5900,11 +5901,23 @@
               ],
               "additionalProperties": false
             }
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "ship",
+              "hold",
+              "wait",
+              "invalid",
+              "draft"
+            ],
+            "description": "Server-computed decision from the goal metric + guardrails + SRM vs. the significance threshold and min runtime: `ship` (goal significant + guardrails pass), `hold` (a guardrail regressed), `wait` (inconclusive / under-powered), `invalid` (sample-ratio mismatch), `draft` (never started)."
           }
         },
         "required": [
           "experiment",
-          "results"
+          "results",
+          "verdict"
         ],
         "additionalProperties": false
       },
