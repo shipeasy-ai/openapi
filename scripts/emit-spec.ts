@@ -15,6 +15,12 @@ import { experimentsResource } from "../src/resources/experiments.js";
 import { universesResource } from "../src/resources/universes.js";
 import { killswitchesResource } from "../src/resources/killswitches.js";
 import { attributesResource } from "../src/resources/attributes.js";
+import { metricsResource } from "../src/resources/metrics.js";
+import { eventsResource } from "../src/resources/events.js";
+import { opsResource } from "../src/resources/ops.js";
+import { alertRulesResource } from "../src/resources/alert-rules.js";
+import { projectsResource } from "../src/resources/projects.js";
+import { i18nResource } from "../src/resources/i18n.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,6 +46,12 @@ const doc = buildOpenApi({
     killswitchesResource,
     universesResource,
     attributesResource,
+    metricsResource,
+    eventsResource,
+    opsResource,
+    alertRulesResource,
+    projectsResource,
+    i18nResource,
   ],
 });
 

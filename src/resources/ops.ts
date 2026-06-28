@@ -1,4 +1,20 @@
+import { z } from "zod";
 import type { Transport } from "../transport.js";
+import {
+  opsTypeSchema,
+  opsStatusSchema,
+  opsListResponseSchema,
+  opsItemResponseSchema,
+  opsBugCreateSchema,
+  opsFeatureCreateSchema,
+  opsUpdateSchema,
+  opsLinkPrSchema,
+  opsNotifySchema,
+  opsCreateResponseSchema,
+  opsUpdateResponseSchema,
+  opsNotifyResponseSchema,
+  slackChannelsResponseSchema,
+} from "../schemas/ops.js";
 
 /**
  * Operational queue — the unified feedback table of bug reports, feature
@@ -126,3 +142,199 @@ export function opsClient(t: Transport): OpsClient {
     channels: () => t.request<SlackChannelsResponse>("GET", "/api/admin/slack/channels"),
   };
 }
+
+export const opsResource = {
+  name: "ops" as const,
+  // The ops surface spans several top-level paths (/feedback, /bugs,
+  // /feature-requests, /notifications, /slack/channels), so the basePath is the
+  // admin root and each endpoint carries its full relative path.
+  basePath: "/api/admin",
+  describeOne: "queue item",
+  describeMany: "queue items",
+  tag: {
+    name: "Ops",
+    description: [
+      "Operational queue: the unified feedback table of bug reports, feature",
+      "requests, and auto-filed error/alert tickets. List/get/update are unified",
+      "over `/feedback`; bug vs. feature creates are per-type. Also exposes the",
+      "`notify` escalation bell and the read-only Slack-channels list used to",
+      "resolve alert-rule notification targets.",
+      "",
+      "**Handles.** A queue item is addressed by its per-project `number` (e.g. `7`)",
+      "or its full id — the API resolves either.",
+    ].join("\n"),
+  },
+  schemas: {},
+  actions: [] as const,
+  endpoints: [
+    {
+      operationId: "listOpsItems",
+      method: "GET",
+      path: "/feedback",
+      summary: "List the operational queue",
+      description:
+        "Returns the unified feedback queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.",
+      queryParams: {
+        type: {
+          schema: opsTypeSchema.or(z.literal("all")).optional(),
+          description: "Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.",
+        },
+        status: {
+          schema: opsStatusSchema.or(z.literal("all")).optional(),
+          description: "Filter by lifecycle status, or `all`.",
+        },
+        limit: {
+          schema: z.coerce.number().int().min(1).max(500).optional(),
+          description: "Max items to return (1–500).",
+        },
+      },
+      response: opsListResponseSchema,
+      examples: {
+        response: [
+          {
+            id: "fb_01j7w8a1b2c3d4e5f6g7h8i9j0",
+            number: 7,
+            type: "bug",
+            title: "Checkout button misaligned on mobile",
+            status: "open",
+            priority: "high",
+            createdAt: "2026-06-20T09:14:08.000Z",
+          },
+        ],
+      },
+      useCase:
+        "Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.",
+    },
+    {
+      operationId: "getOpsItem",
+      method: "GET",
+      path: "/feedback/{handle}",
+      summary: "Get one queue item",
+      description: "Fetch a single queue item by its per-project `number` or full id.",
+      pathParams: { handle: "Per-project item number (e.g. `7`) or the full feedback id." },
+      response: opsItemResponseSchema,
+      examples: {
+        response: {
+          id: "fb_01j7w8a1b2c3d4e5f6g7h8i9j0",
+          number: 7,
+          type: "bug",
+          title: "Checkout button misaligned on mobile",
+          status: "open",
+          priority: "high",
+          createdAt: "2026-06-20T09:14:08.000Z",
+        },
+      },
+      useCase: "Inspect one item's full detail before updating its status or linking a PR.",
+    },
+    {
+      operationId: "createBug",
+      method: "POST",
+      path: "/bugs",
+      summary: "File a bug report",
+      description:
+        "Files a bug into the queue and fires the project's connectors (GitHub issue / Slack). Returns the new id and per-project number.",
+      successStatus: 201,
+      request: opsBugCreateSchema,
+      response: opsCreateResponseSchema,
+      examples: {
+        request: {
+          title: "Checkout button misaligned on mobile",
+          body: "On iOS Safari the primary CTA overlaps the price.",
+          priority: "high",
+        },
+        response: { id: "fb_01j7w8a1b2c3d4e5f6g7h8i9j0", number: 7 },
+      },
+      useCase: "Report a defect programmatically so it lands in the same queue the dashboard shows.",
+    },
+    {
+      operationId: "createFeatureRequest",
+      method: "POST",
+      path: "/feature-requests",
+      summary: "File a feature request",
+      description:
+        "Files a feature request into the queue and fires the project's connectors. Returns the new id and per-project number.",
+      successStatus: 201,
+      request: opsFeatureCreateSchema,
+      response: opsCreateResponseSchema,
+      examples: {
+        request: {
+          title: "Dark mode for the dashboard",
+          body: "Add a theme toggle that persists per user.",
+          priority: "nice_to_have",
+        },
+        response: { id: "fb_01j7w8a1b2c3d4e5f6g7h8i9k1", number: 8 },
+      },
+      useCase: "Capture a feature ask from an integration or a user-facing widget.",
+    },
+    {
+      operationId: "updateOpsItem",
+      method: "PATCH",
+      path: "/feedback/{handle}",
+      summary: "Update a queue item",
+      description: "Update a queue item's `status` and/or `priority`. Other fields are immutable.",
+      pathParams: { handle: "Per-project item number (e.g. `7`) or the full feedback id." },
+      request: opsUpdateSchema,
+      response: opsUpdateResponseSchema,
+      examples: {
+        request: { status: "in_progress", priority: "high" },
+        response: { id: "fb_01j7w8a1b2c3d4e5f6g7h8i9j0" },
+      },
+      useCase: "Move an item through its lifecycle (triage → in_progress → resolved) as you work it.",
+    },
+    {
+      operationId: "linkPrToOpsItem",
+      method: "POST",
+      path: "/feedback/{handle}/link-pr",
+      summary: "Link a fixing PR",
+      description:
+        "Record the pull request that fixes a queue item (and clears the link with `prNumber: null`).",
+      pathParams: { handle: "Per-project item number (e.g. `7`) or the full feedback id." },
+      request: opsLinkPrSchema,
+      response: opsUpdateResponseSchema,
+      examples: {
+        request: { prNumber: 412, prUrl: "https://github.com/acme/app/pull/412" },
+        response: { id: "fb_01j7w8a1b2c3d4e5f6g7h8i9j0" },
+      },
+      useCase: "Tie the fixing PR to the item so closing the PR can flip it to ready_for_qa.",
+    },
+    {
+      operationId: "notifyOps",
+      method: "POST",
+      path: "/notifications",
+      summary: "Raise an attention notification",
+      description:
+        "Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey`.",
+      successStatus: 201,
+      request: opsNotifySchema,
+      response: opsNotifyResponseSchema,
+      examples: {
+        request: {
+          title: "Error spike in checkout",
+          summary: "5xx rate crossed 2% over the last 30m.",
+          href: "https://shipeasy.ai/dashboard",
+        },
+        response: { dedupeKey: "error:checkout:5xx", dispatched: true },
+      },
+      useCase: "Escalate something that needs a human, deduped so repeats don't spam the bell.",
+    },
+    {
+      operationId: "listSlackChannels",
+      method: "GET",
+      path: "/slack/channels",
+      summary: "List Slack channels",
+      description:
+        "List the project's connected Slack channels — used to resolve an alert rule's notification target.",
+      response: slackChannelsResponseSchema,
+      examples: {
+        response: {
+          connected: true,
+          channels: [
+            { id: "C0123", name: "alerts" },
+            { id: "C0456", name: "general" },
+          ],
+        },
+      },
+      useCase: "Populate a channel picker, or validate an alert rule's `--slack-channel` before saving.",
+    },
+  ] as const,
+} as const;
